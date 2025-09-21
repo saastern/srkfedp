@@ -25,7 +25,7 @@ export type Teacher = {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks">("login")
+  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes">("login")
   const [currentModule, setCurrentModule] = useState<"attendance" | "marks" | null>(null)
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [selectedClass, setSelectedClass] = useState<{ id: number; name: string } | null>(null)
@@ -77,8 +77,7 @@ export default function App() {
     if (module === "attendance") {
       setCurrentPage("class-selection")
     } else if (module === "marks") {
-      // Redirect to marks system (you can customize this)
-      window.location.href = "/marks" // Or use Next.js router
+      setCurrentPage("marks-classes")
     }
   }
 
@@ -112,7 +111,7 @@ export default function App() {
     setCurrentPage("class-selection")
     setSelectedClass(null)
   }
-
+  
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -190,8 +189,14 @@ export default function App() {
         />
       )}
 
-      {/* ✅ You can add marks page here when ready */}
-      {currentPage === "marks" && (
+      {currentPage ==="marks-classes" && teacher && (
+        <MarksClassDashboard
+          teacher={teacher }
+          onBack={handleBackToDashboard}
+          onLogout={handleLogout}
+        />
+      )}
+      {currentPage === "marks-classes" && (
         <div className="p-8 text-center">
           <h2 className="text-2xl font-bold">Marks Management</h2>
           <p className="mt-4">Marks module will be integrated here</p>

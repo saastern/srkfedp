@@ -132,6 +132,63 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  /*-----------------------------------------------------------*
+   |  ✅ MARKS MANAGEMENT - NEW SECTION                       |
+   *-----------------------------------------------------------*/
+  
+  // Get all classes for marks management
+  static getMarksClasses() {
+    return ApiService.request('/api/assessments/classes/');
+  }
+
+  // Get students in a class for marks
+  static getMarksStudents(classId) {
+    return ApiService.request(`/api/assessments/students/?class_id=${classId}`);
+  }
+
+  // Get detailed marks for a specific student
+  static getStudentMarks(studentId) {
+    return ApiService.request(`/api/assessments/student-marks/${studentId}/`);
+  }
+
+  // Get subjects for a class (if needed later)
+  static getClassSubjects(classId) {
+    return ApiService.request(`/api/assessments/subjects/?class_id=${classId}`);
+  }
+
+  // Get all exams (if needed later)
+  static getExams() {
+    return ApiService.request('/api/assessments/exams/');
+  }
+
+  /*-----------------------------------------------------------*
+   |  ✅ MARKS ENTRY - FOR FUTURE (when you add marks entry) |
+   *-----------------------------------------------------------*/
+  
+  // Save individual mark
+  static saveStudentMark(markData) {
+    return ApiService.request('/api/assessments/marks/', {
+      method: 'POST',
+      body: JSON.stringify(markData),
+    });
+  }
+
+  // Bulk save marks
+  static saveBulkMarks(bulkMarkData) {
+    return ApiService.request('/api/assessments/bulk-marks/', {
+      method: 'POST',
+      body: JSON.stringify(bulkMarkData),
+    });
+  }
+
+  // Update existing mark
+  static updateStudentMark(markId, markData) {
+    return ApiService.request(`/api/assessments/marks/${markId}/`, {
+      method: 'PUT',
+      body: JSON.stringify(markData),
+    });
+  }
 }
 
 export default ApiService;
