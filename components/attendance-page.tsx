@@ -33,7 +33,7 @@ export default function AttendancePage({ className, classId, onBack, onLogout }:
   const [attendanceSubmitted, setAttendanceSubmitted] = useState(false)
   const [selectedSession, setSelectedSession] = useState<"morning" | "afternoon">("morning")
 
-  // Fetch real students from Django API
+  // Fetch real students from Django API - UPDATED WITH SORTING
   const fetchStudents = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -58,8 +58,27 @@ export default function AttendancePage({ className, classId, onBack, onLogout }:
           gender: student.gender || '',
         }))
         
-        setStudents(fetchedStudents)
-        console.log('✅ Students loaded:', fetchedStudents.length)
+        // ✅ FIXED: Sort students by roll number numerically
+        const sortedStudents = fetchedStudents.sort((a, b) => {
+          const rollA = parseInt(a.rollNumber.toString(), 10)
+          const rollB = parseInt(b.rollNumber.toString(), 10)
+          
+          // Handle non-numeric roll numbers
+          if (isNaN(rollA)) return 1
+          if (isNaN(rollB)) return -1
+          
+          return rollA - rollB
+        })
+        
+        setStudents(sortedStudents)
+        console.log('✅ Students loaded and sorted:', sortedStudents.length)
+        
+        // Debug log to verify correct order
+        console.log('📋 Student roll number order:')
+        sortedStudents.forEach((student, index) => {
+          console.log(`${index + 1}. Roll ${student.rollNumber}: ${student.name}`)
+        })
+        
       } else {
         throw new Error(response.message || 'Failed to fetch students')
       }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import LoginPage from "@/components/login-page"
+import Dashboard from "@/components/dashboard"
 import ClassSelection from "@/components/class-selection"
 import AttendancePage from "@/components/attendance-page"
 import ManageStudentsPage from "@/components/manage-students-page"
@@ -24,7 +25,8 @@ export type Teacher = {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<"login" | "class-selection" | "attendance" | "manage-students">("login")
+  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks">("login")
+  const [currentModule, setCurrentModule] = useState<"attendance" | "marks" | null>(null)
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [selectedClass, setSelectedClass] = useState<{ id: number; name: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -43,7 +45,7 @@ export default function App() {
           // If profile call succeeds, user is authenticated
           const parsedUser = JSON.parse(userData)
           setTeacher(parsedUser)
-          setCurrentPage("class-selection")
+          setCurrentPage("dashboard") // ✅ Changed from "class-selection" to "dashboard"
         } catch (error) {
           console.error('Token validation failed:', error)
           // Clear invalid token data
@@ -65,19 +67,44 @@ export default function App() {
   // Handle successful login from LoginPage
   const handleLogin = (userData: Teacher) => {
     setTeacher(userData)
-    setCurrentPage("class-selection")
+    setCurrentPage("dashboard") // ✅ Changed from "class-selection" to "dashboard"
+  }
+
+  // ✅ New: Handle module selection from dashboard
+  const handleModuleSelect = (module: "attendance" | "marks") => {
+    setCurrentModule(module)
+    
+    if (module === "attendance") {
+      setCurrentPage("class-selection")
+    } else if (module === "marks") {
+      // Redirect to marks system (you can customize this)
+      window.location.href = "/marks" // Or use Next.js router
+    }
   }
 
   // Handle class selection for attendance
   const handleClassSelect = (classId: number, className: string) => {
     setSelectedClass({ id: classId, name: className })
-    setCurrentPage("attendance")
+    
+    if (currentModule === "attendance") {
+      setCurrentPage("attendance")
+    } else if (currentModule === "marks") {
+      // Handle marks class selection
+      setCurrentPage("marks")
+    }
   }
 
   // Handle class selection for managing students
   const handleManageStudents = (classId: number, className: string) => {
     setSelectedClass({ id: classId, name: className })
     setCurrentPage("manage-students")
+  }
+
+  // ✅ Updated: Handle back to dashboard
+  const handleBackToDashboard = () => {
+    setCurrentPage("dashboard")
+    setCurrentModule(null)
+    setSelectedClass(null)
   }
 
   // Handle back to class selection
@@ -104,6 +131,7 @@ export default function App() {
       // Reset state
       setTeacher(null)
       setSelectedClass(null)
+      setCurrentModule(null)
       setCurrentPage("login")
     }
   }
@@ -126,11 +154,21 @@ export default function App() {
         <LoginPage onLogin={handleLogin} />
       )}
 
+      {/* ✅ New: Dashboard page */}
+      {currentPage === "dashboard" && teacher && (
+        <Dashboard
+          teacher={teacher}
+          onSelectModule={handleModuleSelect}
+          onLogout={handleLogout}
+        />
+      )}
+
       {currentPage === "class-selection" && teacher && (
         <ClassSelection
           onClassSelect={handleClassSelect}
           onManageStudents={handleManageStudents}
           onLogout={handleLogout}
+          onBack={handleBackToDashboard} // ✅ Add back button to dashboard
         />
       )}
 
@@ -150,6 +188,20 @@ export default function App() {
           onBack={handleBackToClasses} 
           onLogout={handleLogout} 
         />
+      )}
+
+      {/* ✅ You can add marks page here when ready */}
+      {currentPage === "marks" && (
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold">Marks Management</h2>
+          <p className="mt-4">Marks module will be integrated here</p>
+          <button 
+            onClick={handleBackToDashboard}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
+          >
+            Back to Dashboard
+          </button>
+        </div>
       )}
     </div>
   )
