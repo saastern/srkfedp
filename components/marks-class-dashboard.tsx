@@ -30,7 +30,7 @@ const classIcons = {
   "10": "🔟",
 }
 
-// ✅ Add proper props interface
+// ✅ Updated props interface
 interface MarksClassDashboardProps {
   teacher: {
     id: number
@@ -42,14 +42,13 @@ interface MarksClassDashboardProps {
   }
   onBack: () => void
   onLogout: () => void
+  onClassSelect?: (classId: string, className: string) => void // ✅ Added callback
 }
 
-// ✅ Accept props and rename function
-export function MarksClassDashboard({ teacher, onBack, onLogout }: MarksClassDashboardProps) {
+export function MarksClassDashboard({ teacher, onBack, onLogout, onClassSelect }: MarksClassDashboardProps) {
   const [classes, setClasses] = useState<ClassData[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // ✅ Add useEffect to fetch classes on mount
   useEffect(() => {
     fetchClasses()
   }, [])
@@ -66,8 +65,11 @@ export function MarksClassDashboard({ teacher, onBack, onLogout }: MarksClassDas
   }
 
   const handleClassSelect = (classId: string) => {
-    // ✅ For now, just show alert - you can implement navigation later
-    alert(`Selected class: ${classId}. Student list functionality coming soon!`)
+    // ✅ Use callback instead of alert
+    if (onClassSelect) {
+      const classData = classes.find(c => c.id === classId)
+      onClassSelect(classId, classData?.displayName || classId)
+    }
   }
 
   return (

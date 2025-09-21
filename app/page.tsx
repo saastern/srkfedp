@@ -5,6 +5,7 @@ import LoginPage from "@/components/login-page"
 import Dashboard from "@/components/dashboard"
 import ClassSelection from "@/components/class-selection"
 import AttendancePage from "@/components/attendance-page"
+import StudentList from "@/components/marks-student-list"
 import ManageStudentsPage from "@/components/manage-students-page"
 import { MarksClassDashboard } from "@/components/marks-class-dashboard" // ✅ Add this import
 import ApiService from "@/services/api"
@@ -26,7 +27,7 @@ export type Teacher = {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes">("login")
+  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes" | "marks-students">("login")
   const [currentModule, setCurrentModule] = useState<"attendance" | "marks" | null>(null)
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [selectedClass, setSelectedClass] = useState<{ id: number; name: string } | null>(null)
@@ -90,7 +91,7 @@ export default function App() {
       setCurrentPage("attendance")
     } else if (currentModule === "marks") {
       // Handle marks class selection
-      setCurrentPage("marks")
+      setCurrentPage("marks-students") // You may need to create this page/component
     }
   }
 
@@ -195,8 +196,14 @@ export default function App() {
           teacher={teacher}
           onBack={handleBackToDashboard}
           onLogout={handleLogout}
+          onClassSelect={(classId, className) => {
+      // Convert string to number for selectedClass
+            setSelectedClass({ id: parseInt(classId), name: className })
+            setCurrentPage("marks-students")
+          }}
         />
       )}
+      
     </div>
   )
 }
