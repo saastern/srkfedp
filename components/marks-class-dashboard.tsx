@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/loading-spinner"
-import { Users } from "lucide-react"
+import { ArrowLeft, Users } from "lucide-react"
 import ApiService from "@/services/api"
 
 interface ClassData {
@@ -30,18 +30,34 @@ const classIcons = {
   "10": "🔟",
 }
 
-export function ClassDashboard() {
+// ✅ Add proper props interface
+interface MarksClassDashboardProps {
+  teacher: {
+    id: number
+    username: string
+    first_name: string
+    last_name: string
+    full_name: string
+    role: string
+  }
+  onBack: () => void
+  onLogout: () => void
+}
+
+// ✅ Accept props and rename function
+export function MarksClassDashboard({ teacher, onBack, onLogout }: MarksClassDashboardProps) {
   const [classes, setClasses] = useState<ClassData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  
-  const router = useRouter()
 
+  // ✅ Add useEffect to fetch classes on mount
+  useEffect(() => {
+    fetchClasses()
+  }, [])
 
   const fetchClasses = async () => {
     try {
       const data = await ApiService.getMarksClasses()
       setClasses(data.classes)
-      
     } catch (error) {
       console.error("Error fetching classes:", error)
     } finally {
@@ -50,18 +66,43 @@ export function ClassDashboard() {
   }
 
   const handleClassSelect = (classId: string) => {
-    router.push(`/students?class_id=${classId}`)
+    // ✅ For now, just show alert - you can implement navigation later
+    alert(`Selected class: ${classId}. Student list functionality coming soon!`)
   }
-
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome, {teacher.name}</h1>
-          <p className="text-gray-600 mt-1">Select a class to view students and their academic performance</p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <Button 
+              onClick={onBack}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2 bg-white"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Marks Management
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Welcome, {teacher.full_name || teacher.username} - Select a class to view students and their academic performance
+              </p>
+            </div>
+          </div>
+          
+          <Button
+            onClick={onLogout}
+            variant="outline"
+            size="sm"
+            className="flex items-center space-x-2"
+          >
+            <span>Logout</span>
+          </Button>
         </div>
 
         {/* Class Grid */}
@@ -78,8 +119,12 @@ export function ClassDashboard() {
                 onClick={() => handleClassSelect(classData.id)}
               >
                 <CardContent className="p-6 text-center">
-                  <div className="text-4xl mb-3">{classIcons[classData.id as keyof typeof classIcons] || "📖"}</div>
-                  <h3 className="font-semibold text-lg text-gray-900 mb-2">{classData.displayName}</h3>
+                  <div className="text-4xl mb-3">
+                    {classIcons[classData.id as keyof typeof classIcons] || "📖"}
+                  </div>
+                  <h3 className="font-semibold text-lg text-gray-900 mb-2">
+                    {classData.displayName}
+                  </h3>
                   <div className="flex items-center justify-center text-sm text-gray-600">
                     <Users className="w-4 h-4 mr-1" />
                     {classData.studentCount} students
@@ -87,6 +132,13 @@ export function ClassDashboard() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {/* No classes message */}
+        {!isLoading && classes.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">No classes found</p>
           </div>
         )}
       </div>
