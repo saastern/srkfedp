@@ -16,6 +16,11 @@ interface Student {
   name: string
   className: string
 }
+interface StudentList {
+  classId: string
+  onBack: () => void
+  onLogout: () => void
+}
 
 export function StudentList() {
   const [students, setStudents] = useState<Student[]>([])
@@ -41,7 +46,7 @@ export function StudentList() {
     )
     setFilteredStudents(filtered)
   }, [students, searchTerm])
-  
+
   useEffect(() => {
     const filtered = students.filter(
       (student) => student.name.toLowerCase().includes(searchTerm.toLowerCase()) || student.rollNo.includes(searchTerm),

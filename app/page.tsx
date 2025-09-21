@@ -197,7 +197,10 @@ export default function App() {
 
       {/* ✅ Add this missing marks-students page */}
       {currentPage === "marks-students" && teacher && selectedClass && (
-        <StudentList />
+        <StudentList
+        classId={selectedClass.id.toString()}
+        onBack={() => setCurrentPage("marks-classes")}
+        onLogout={handleLogout} />
       )}
     </div>
   )
