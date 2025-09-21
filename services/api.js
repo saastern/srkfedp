@@ -3,8 +3,7 @@
 //  Central API helper for your Django backend
 //-----------------------------------------------
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://srkdp-production.up.railway.app";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://srkdp-production.up.railway.app" || "http://127.0.0.1:8000" ;
 
 class ApiService {
   /*-----------------------------------------------------------*

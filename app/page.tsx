@@ -5,10 +5,11 @@ import LoginPage from "@/components/login-page"
 import Dashboard from "@/components/dashboard"
 import ClassSelection from "@/components/class-selection"
 import AttendancePage from "@/components/attendance-page"
-import { StudentList } from "@/components/marks-student-list" // ✅ Fixed import - use named export
+import { MarksStudentList } from "@/components/marks-student-list"
 import ManageStudentsPage from "@/components/manage-students-page"
 import { MarksClassDashboard } from "@/components/marks-class-dashboard"
 import ApiService from "@/services/api"
+import { MarksStudentMarks } from "@/components/marks-student-marks"
 
 export type Student = {
   id: number
@@ -27,11 +28,12 @@ export type Teacher = {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes" | "marks-students">("login")
+  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes" | "marks-students" | "marks-student-details">("login")
   const [currentModule, setCurrentModule] = useState<"attendance" | "marks" | null>(null)
   const [teacher, setTeacher] = useState<Teacher | null>(null)
-  const [selectedClass, setSelectedClass] = useState<{ id: number; name: string } | null>(null)
+  const [selectedClass, setSelectedClass] = useState<{ id: string; name: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null)
 
   // Check if user is authenticated on page load
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function App() {
 
   // Handle class selection for attendance
   const handleClassSelect = (classId: number, className: string) => {
-    setSelectedClass({ id: classId, name: className })
+    setSelectedClass({ id: classId.toString(), name: className })
     
     if (currentModule === "attendance") {
       setCurrentPage("attendance")
@@ -92,7 +94,7 @@ export default function App() {
 
   // Handle class selection for managing students
   const handleManageStudents = (classId: number, className: string) => {
-    setSelectedClass({ id: classId, name: className })
+    setSelectedClass({ id: classId.toString(), name: className })
     setCurrentPage("manage-students")
   }
 
@@ -101,12 +103,14 @@ export default function App() {
     setCurrentPage("dashboard")
     setCurrentModule(null)
     setSelectedClass(null)
+    setSelectedStudent(null)
   }
 
   // Handle back to class selection
   const handleBackToClasses = () => {
     setCurrentPage("class-selection")
     setSelectedClass(null)
+    setSelectedStudent(null)
   }
   
   // Handle logout
@@ -126,6 +130,7 @@ export default function App() {
       setTeacher(null)
       setSelectedClass(null)
       setCurrentModule(null)
+      setSelectedStudent(null)
       setCurrentPage("login")
     }
   }
@@ -168,7 +173,7 @@ export default function App() {
       {currentPage === "attendance" && teacher && selectedClass && (
         <AttendancePage 
           className={selectedClass.name}
-          classId={selectedClass.id}
+          classId={(selectedClass.id)} // ✅ Fix: Convert back to number
           onBack={handleBackToClasses} 
           onLogout={handleLogout} 
         />
@@ -177,7 +182,7 @@ export default function App() {
       {currentPage === "manage-students" && teacher && selectedClass && (
         <ManageStudentsPage 
           className={selectedClass.name}
-          classId={selectedClass.id}
+          classId={parseInt(selectedClass.id)} // ✅ Fix: Convert back to number
           onBack={handleBackToClasses} 
           onLogout={handleLogout} 
         />
@@ -189,18 +194,33 @@ export default function App() {
           onBack={handleBackToDashboard}
           onLogout={handleLogout}
           onClassSelect={(classId, className) => {
-            setSelectedClass({ id: parseInt(classId), name: className })
+            setSelectedClass({ id: classId, name: className })
             setCurrentPage("marks-students")
           }}
         />
       )}
 
-      {/* ✅ Add this missing marks-students page */}
+      {/* ✅ Marks Students List - KEEP ONLY THIS ONE */}
       {currentPage === "marks-students" && teacher && selectedClass && (
-        <StudentList
-        classId={selectedClass.id.toString()}
-        onBack={() => setCurrentPage("marks-classes")}
-        onLogout={handleLogout} />
+        <MarksStudentList
+          classId={selectedClass.id}
+          onBack={() => setCurrentPage("marks-classes")}
+          onLogout={handleLogout} 
+          onStudentSelect={(studentId, studentName) => {
+            setSelectedStudent({ id: studentId, name: studentName })
+            setCurrentPage("marks-student-details")
+          }}
+        />
+      )}
+
+      {/* ✅ Individual Student Marks */}
+      {currentPage === "marks-student-details" && teacher && selectedStudent && (
+        <MarksStudentMarks
+          studentId={selectedStudent.id}
+          teacher={teacher}
+          onBack={() => setCurrentPage("marks-students")}
+          onLogout={handleLogout}
+        />
       )}
     </div>
   )
