@@ -6,6 +6,7 @@ import Dashboard from "@/components/dashboard"
 import ClassSelection from "@/components/class-selection"
 import AttendancePage from "@/components/attendance-page"
 import ManageStudentsPage from "@/components/manage-students-page"
+import { MarksClassDashboard } from "@/components/marks-class-dashboard" // ✅ Add this import
 import ApiService from "@/services/api"
 
 export type Student = {
@@ -45,7 +46,7 @@ export default function App() {
           // If profile call succeeds, user is authenticated
           const parsedUser = JSON.parse(userData)
           setTeacher(parsedUser)
-          setCurrentPage("dashboard") // ✅ Changed from "class-selection" to "dashboard"
+          setCurrentPage("dashboard")
         } catch (error) {
           console.error('Token validation failed:', error)
           // Clear invalid token data
@@ -67,10 +68,10 @@ export default function App() {
   // Handle successful login from LoginPage
   const handleLogin = (userData: Teacher) => {
     setTeacher(userData)
-    setCurrentPage("dashboard") // ✅ Changed from "class-selection" to "dashboard"
+    setCurrentPage("dashboard")
   }
 
-  // ✅ New: Handle module selection from dashboard
+  // Handle module selection from dashboard
   const handleModuleSelect = (module: "attendance" | "marks") => {
     setCurrentModule(module)
     
@@ -99,7 +100,7 @@ export default function App() {
     setCurrentPage("manage-students")
   }
 
-  // ✅ Updated: Handle back to dashboard
+  // Handle back to dashboard
   const handleBackToDashboard = () => {
     setCurrentPage("dashboard")
     setCurrentModule(null)
@@ -153,7 +154,6 @@ export default function App() {
         <LoginPage onLogin={handleLogin} />
       )}
 
-      {/* ✅ New: Dashboard page */}
       {currentPage === "dashboard" && teacher && (
         <Dashboard
           teacher={teacher}
@@ -167,7 +167,7 @@ export default function App() {
           onClassSelect={handleClassSelect}
           onManageStudents={handleManageStudents}
           onLogout={handleLogout}
-          onBack={handleBackToDashboard} // ✅ Add back button to dashboard
+          onBack={handleBackToDashboard}
         />
       )}
 
@@ -189,24 +189,13 @@ export default function App() {
         />
       )}
 
-      {currentPage ==="marks-classes" && teacher && (
+      {/* ✅ Fixed: Only one marks-classes block */}
+      {currentPage === "marks-classes" && teacher && (
         <MarksClassDashboard
-          teacher={teacher }
+          teacher={teacher}
           onBack={handleBackToDashboard}
           onLogout={handleLogout}
         />
-      )}
-      {currentPage === "marks-classes" && (
-        <div className="p-8 text-center">
-          <h2 className="text-2xl font-bold">Marks Management</h2>
-          <p className="mt-4">Marks module will be integrated here</p>
-          <button 
-            onClick={handleBackToDashboard}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            Back to Dashboard
-          </button>
-        </div>
       )}
     </div>
   )
