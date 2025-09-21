@@ -29,7 +29,19 @@ export function StudentList() {
   const classId = searchParams.get("class_id")
 
   
+   useEffect(() => {
+    if (classId) {
+      fetchStudents()
+    }
+  }, [classId])
 
+  useEffect(() => {
+    const filtered = students.filter(
+      (student) => student.name.toLowerCase().includes(searchTerm.toLowerCase()) || student.rollNo.includes(searchTerm),
+    )
+    setFilteredStudents(filtered)
+  }, [students, searchTerm])
+  
   useEffect(() => {
     const filtered = students.filter(
       (student) => student.name.toLowerCase().includes(searchTerm.toLowerCase()) || student.rollNo.includes(searchTerm),

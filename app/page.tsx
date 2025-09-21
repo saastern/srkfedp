@@ -5,9 +5,9 @@ import LoginPage from "@/components/login-page"
 import Dashboard from "@/components/dashboard"
 import ClassSelection from "@/components/class-selection"
 import AttendancePage from "@/components/attendance-page"
-import StudentList from "@/components/marks-student-list"
+import { StudentList } from "@/components/marks-student-list" // ✅ Fixed import - use named export
 import ManageStudentsPage from "@/components/manage-students-page"
-import { MarksClassDashboard } from "@/components/marks-class-dashboard" // ✅ Add this import
+import { MarksClassDashboard } from "@/components/marks-class-dashboard"
 import ApiService from "@/services/api"
 
 export type Student = {
@@ -41,16 +41,12 @@ export default function App() {
       
       if (token && userData) {
         try {
-          // Verify token is still valid by making an API call
           const response = await ApiService.getProfile()
-          
-          // If profile call succeeds, user is authenticated
           const parsedUser = JSON.parse(userData)
           setTeacher(parsedUser)
           setCurrentPage("dashboard")
         } catch (error) {
           console.error('Token validation failed:', error)
-          // Clear invalid token data
           localStorage.removeItem('access_token')
           localStorage.removeItem('refresh_token')
           localStorage.removeItem('user_data')
@@ -90,8 +86,7 @@ export default function App() {
     if (currentModule === "attendance") {
       setCurrentPage("attendance")
     } else if (currentModule === "marks") {
-      // Handle marks class selection
-      setCurrentPage("marks-students") // You may need to create this page/component
+      setCurrentPage("marks-students")
     }
   }
 
@@ -124,12 +119,10 @@ export default function App() {
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      // Clear all stored data
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user_data')
       
-      // Reset state
       setTeacher(null)
       setSelectedClass(null)
       setCurrentModule(null)
@@ -190,20 +183,22 @@ export default function App() {
         />
       )}
 
-      {/* ✅ Fixed: Only one marks-classes block */}
       {currentPage === "marks-classes" && teacher && (
         <MarksClassDashboard
           teacher={teacher}
           onBack={handleBackToDashboard}
           onLogout={handleLogout}
           onClassSelect={(classId, className) => {
-      // Convert string to number for selectedClass
             setSelectedClass({ id: parseInt(classId), name: className })
             setCurrentPage("marks-students")
           }}
         />
       )}
-      
+
+      {/* ✅ Add this missing marks-students page */}
+      {currentPage === "marks-students" && teacher && selectedClass && (
+        <StudentList />
+      )}
     </div>
   )
 }
