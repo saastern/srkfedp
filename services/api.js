@@ -16,7 +16,7 @@ class ApiService {
    |  Generic request helper  (includes detailed debug logs)   |
    *-----------------------------------------------------------*/
   static async request(endpoint, options = {}) {
-    const url   = `${this.baseURL}${endpoint}`;
+    const url   = `${ApiService.baseURL}${endpoint}`;
     const token = localStorage.getItem('access_token');
 
     /* ---------- DEBUG: token + header state ----------------- */
@@ -61,40 +61,40 @@ class ApiService {
    |  Authentication helpers                                   |
    *-----------------------------------------------------------*/
   static login(username, password) {
-    return this.request('/auth/login/', {
+    return ApiService.request('/api/auth/login/', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
   }
 
   static logout(refreshToken) {
-    return this.request('/auth/logout/', {
+    return ApiService.request('/api/auth/logout/', {
       method: 'POST',
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
   }
 
   static getProfile() {
-    return this.request('/auth/profile/');
+    return ApiService.request('/api/auth/profile/');
   }
 
   /*-----------------------------------------------------------*
    |  Teacher dashboard                                        |
    *-----------------------------------------------------------*/
   static getTeacherDashboard() {
-    return this.request('/teachers/dashboard/');
+    return ApiService.request('/api/teachers/dashboard/');
   }
 
   /*-----------------------------------------------------------*
    |  Attendance - UPDATED WITH NEW METHODS                   |
    *-----------------------------------------------------------*/
   static getClassStudents(classId) {
-    return this.request(`/attendance/class/${classId}/students/`);
+    return ApiService.request(`/api/attendance/class/${classId}/students/`);
   }
 
   // NEW: Save attendance to database
   static markAttendance(attendanceData) {
-    return this.request('/attendance/mark/', {
+    return ApiService.request('/api/attendance/mark/', {
       method: 'POST',
       body: JSON.stringify(attendanceData),
     });
@@ -102,33 +102,33 @@ class ApiService {
 
   // NEW: Get existing attendance from database
   static getAttendance(classId, date, session) {
-    return this.request(`/attendance/class/${classId}/?date=${date}&session=${session}`);
+    return ApiService.request(`/api/attendance/class/${classId}/?date=${date}&session=${session}`);
   }
 
   // NEW: Get comprehensive attendance report for all classes
   static getAttendanceReport(date, session) {
-    return this.request(`/attendance/report/?date=${date}&session=${session}`);
+    return ApiService.request(`/api/attendance/report/?date=${date}&session=${session}`);
   }
 
   /*-----------------------------------------------------------*
    |  Student management                                       |
    *-----------------------------------------------------------*/
   static async addStudent(studentData) {
-    return this.request('/students/add/', {
+    return ApiService.request('/api/students/add/', {
       method: 'POST',
       body: JSON.stringify(studentData),
     });
   }
 
   static async addStudentsBulk(bulkData) {
-    return this.request('/students/add-bulk/', {
+    return ApiService.request('/api/students/add-bulk/', {
       method: 'POST',
       body: JSON.stringify(bulkData),
     });
   }
 
   static async deleteStudent(studentId) {
-    return this.request(`/students/${studentId}/delete/`, {
+    return ApiService.request(`/api/students/${studentId}/delete/`, {
       method: 'DELETE',
     });
   }
