@@ -30,8 +30,14 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         localStorage.setItem('access_token', response.access_token)
         localStorage.setItem('refresh_token', response.refresh_token)
         localStorage.setItem('user_data', JSON.stringify(response.user))
+
+        if (response.user.role === 'principal') {
+          onLogin({ ...response.user, role: 'principal' })
+        } else {
+          onLogin(response.user)
+       } 
         
-        onLogin(response.user)
+        
       } else {
         setError(response.message || 'Login failed')
       }

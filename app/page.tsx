@@ -10,6 +10,9 @@ import ManageStudentsPage from "@/components/manage-students-page"
 import { MarksClassDashboard } from "@/components/marks-class-dashboard"
 import ApiService from "@/services/api"
 import { MarksStudentMarks } from "@/components/marks-student-marks"
+import FeeDashboard from "@/components/PrincipalDashboard/FeeDashboard"
+import PrincipalDashboard from "@/components/PrincipalDashboard/PrincipalDashboard"
+
 
 export type Student = {
   id: number
@@ -28,7 +31,7 @@ export type Teacher = {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes" | "marks-students" | "marks-student-details">("login")
+  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes" | "marks-students" | "principal" |"principal-fees" | "marks-student-details">("login")
   const [currentModule, setCurrentModule] = useState<"attendance" | "marks" | null>(null)
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [selectedClass, setSelectedClass] = useState<{ id: string; name: string } | null>(null)
@@ -63,12 +66,17 @@ export default function App() {
 
     checkAuth()
   }, [])
-
-  // Handle successful login from LoginPage
+ // Handle successful login from LoginPage
   const handleLogin = (userData: Teacher) => {
     setTeacher(userData)
+      if (userData.role === 'principal') {
+    setCurrentPage("principal")
+  } else {
     setCurrentPage("dashboard")
   }
+}
+
+    
 
   // Handle module selection from dashboard
   const handleModuleSelect = (module: "attendance" | "marks") => {
@@ -176,6 +184,22 @@ export default function App() {
           classId={(selectedClass.id)} // ✅ Fix: Convert back to number
           onBack={handleBackToClasses} 
           onLogout={handleLogout} 
+        />
+      )}
+
+      {currentPage === "principal" && teacher && teacher.role === 'principal' && (
+        <PrincipalDashboard
+          teacher={teacher}
+          onLogout={handleLogout}
+          onFeeDashboard={() => setCurrentPage("principal-fees")}
+        />
+      )}
+
+      {currentPage === "principal-fees" && teacher && teacher.role === 'principal' && (
+        <FeeDashboard
+          teacher={teacher}
+          onBack={() => setCurrentPage("principal")}
+          onLogout={handleLogout}
         />
       )}
 
