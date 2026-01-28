@@ -250,7 +250,7 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                 }}
               />
-              <Legend 
+              <Legend   
                 wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
               />
               <Line 
