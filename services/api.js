@@ -134,6 +134,11 @@ class ApiService {
     return ApiService.request(`/api/fees/student-status/?student_id=${studentId}`);
   }
 
+  static getTransactions(filters = {}) {
+    const params = new URLSearchParams(filters).toString();
+    return ApiService.request(`/api/fees/transactions/?${params}`);
+  }
+
   /*-----------------------------------------------------------*
    |  Student management                                       |
    *-----------------------------------------------------------*/

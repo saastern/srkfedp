@@ -18,19 +18,33 @@ interface FeeDashboardProps {
 export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboardProps) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [filteredTransactions, setFilteredTransactions] = useState<any[]>([])
+  const [filters, setFilters] = useState<any>({})
+
+  const fetchFeeData = async () => {
+    try {
+      setLoading(true)
+      const response = await ApiService.request('/api/fees/dashboard/')
+      setData(response)
+    } catch (error) {
+      console.error('Error fetching fee dashboard:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchFilteredTransactions = async (newFilters: any) => {
+    const activeFilters = { ...filters, ...newFilters }
+    setFilters(activeFilters)
+    try {
+      const resp = await ApiService.getTransactions(activeFilters)
+      setFilteredTransactions(resp.transactions || [])
+    } catch (err) {
+      console.error('Error filtering transactions:', err)
+    }
+  }
 
   useEffect(() => {
-    const fetchFeeData = async () => {
-      try {
-        setLoading(true)
-        const response = await ApiService.request('/api/fees/dashboard/')
-        setData(response)
-      } catch (error) {
-        console.error('Error fetching fee dashboard:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchFeeData()
   }, [])
 
@@ -82,10 +96,16 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
           <div className="text-2xl font-black text-gray-900">₹{kpis.total_expected?.toLocaleString()}</div>
         </div>
 
+        <div className="bg-gray-900 border-l-4 border-l-yellow-400 border border-gray-200 p-4 shadow-sm">
+          <div className="text-[10px] font-black text-yellow-400 uppercase">Received Today</div>
+          <div className="text-2xl font-black text-white">₹{kpis.today_collected?.toLocaleString() || '0'}</div>
+          <div className="text-[8px] font-bold text-gray-400 uppercase mt-1">Live Ledger Sync</div>
+        </div>
+
         <div className="bg-white border-l-4 border-l-emerald-600 border border-gray-200 p-4 shadow-sm">
           <div className="text-[10px] font-black text-gray-400 uppercase">Collection Rate</div>
           <div className="text-2xl font-black text-emerald-600">{kpis.collection_rate}%</div>
-          <div className="text-[10px] font-bold text-gray-500">₹{kpis.collected?.toLocaleString()} COLLECTED</div>
+          <div className="text-[10px] font-bold text-gray-500 uppercase">₹{kpis.collected?.toLocaleString()} COLLECTED</div>
         </div>
 
         <div className="bg-white border-l-4 border-l-orange-600 border border-gray-200 p-4 shadow-sm">
@@ -94,14 +114,9 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
         </div>
 
         <div className="bg-white border-l-4 border-l-purple-600 border border-gray-200 p-4 shadow-sm">
-          <div className="text-[10px] font-black text-gray-400 uppercase">Total Concessions</div>
-          <div className="text-2xl font-black text-purple-600">₹{kpis.concessions?.toLocaleString()}</div>
-        </div>
-
-        <div className="bg-white border-l-4 border-l-red-600 border border-gray-200 p-4 shadow-sm">
-          <div className="text-[10px] font-black text-gray-400 uppercase">Active Defaulters</div>
-          <div className="text-2xl font-black text-red-600">{kpis.defaulters_count}</div>
-          <div className="text-[10px] font-bold text-gray-500 uppercase">Follow-up Required</div>
+          <div className="text-[10px] font-black text-gray-400 uppercase">Defaulters</div>
+          <div className="text-2xl font-black text-purple-600">{kpis.defaulters_count}</div>
+          <div className="text-[10px] font-bold text-gray-500 uppercase italic">Follow-up Required</div>
         </div>
       </div>
 
@@ -148,29 +163,98 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
         </section>
       </div>
 
+      {/* Detailed Transaction History Section */}
+      <section className="bg-white border border-gray-200 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4">
+        <div className="bg-gray-100 px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h2 className="font-black text-sm uppercase tracking-tight">Full Transaction Audit Ledger</h2>
+            <p className="text-[9px] font-bold text-gray-400 uppercase">Financial Year 2024-25 / Live Transactions</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="date"
+              className="text-[10px] font-bold border-2 border-gray-200 p-2 rounded-none focus:border-blue-600 outline-none"
+              onChange={(e) => fetchFilteredTransactions({ date: e.target.value })}
+            />
+            <select
+              className="text-[10px] font-bold border-2 border-gray-200 p-2 rounded-none focus:border-blue-600 outline-none uppercase"
+              onChange={(e) => fetchFilteredTransactions({ method: e.target.value })}
+            >
+              <option value="">All Methods</option>
+              <option value="CASH">Cash</option>
+              <option value="UPI">UPI/Online</option>
+              <option value="BANK_TRANSFER">Bank Transfer</option>
+            </select>
+            <Button size="sm" variant="outline" className="text-[10px] font-black rounded-none h-9" onClick={() => fetchFilteredTransactions({})}>REFRESH</Button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase">Date/Time</th>
+                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase">Student Profile</th>
+                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase">Method</th>
+                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase">Receipt</th>
+                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {(filteredTransactions.length > 0 ? filteredTransactions : transactions).map((tx: any, i: number) => (
+                <tr key={i} className="hover:bg-blue-50/30 transition-colors">
+                  <td className="px-6 py-4 text-[10px] font-bold text-gray-500">{tx.date}</td>
+                  <td className="px-6 py-4">
+                    <div className="text-[11px] font-black text-gray-900 uppercase">{tx.student || tx.student_name}</div>
+                    <div className="text-[9px] font-bold text-gray-400">ROLL: {tx.roll_number || 'N/A'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <Badge variant="outline" className={`text-[8px] font-black rounded-none ${tx.method === 'CASH' ? 'border-orange-200 text-orange-700 bg-orange-50' :
+                        tx.method === 'UPI' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                          'border-gray-200 text-gray-600 bg-gray-50'
+                      }`}>
+                      {tx.method}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase">{tx.receipt}</td>
+                  <td className="px-6 py-4 text-sm font-black text-emerald-600 text-right">₹{tx.amount?.toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {(transactions.length === 0 && filteredTransactions.length === 0) && (
+            <div className="p-12 text-center">
+              <div className="text-[10px] font-black text-gray-300 uppercase italic">No transaction records found matching criteria.</div>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Collection Efficiency Terminal */}
       <section className="bg-white border border-gray-200 shadow-sm">
-        <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-sm">COLLECTION EFFICIENCY INDEX</div>
+        <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-sm uppercase">Revenue Performance Matrix</div>
         <div className="p-4">
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} className="text-[10px] font-bold" />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} className="text-[10px] font-bold italic" />
               <YAxis axisLine={false} tickLine={false} domain={[0, 100]} className="text-[10px] font-bold" tickFormatter={(v) => `${v}%`} />
-              <Tooltip contentStyle={{ borderRadius: '0px', border: '1px solid #e5e7eb' }} />
+              <Tooltip contentStyle={{ borderRadius: '0px', border: '1px solid #e5e7eb', fontSize: '10px', fontFamily: 'monospace' }} />
               <Line
                 type="stepAfter"
                 dataKey="amount"
                 stroke="#059669"
-                strokeWidth={3}
+                strokeWidth={4}
                 dot={{ fill: '#059669', r: 4 }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
           </ResponsiveContainer>
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-100">
-            <p className="text-[10px] font-bold text-blue-800 uppercase leading-relaxed">
-              ANALYSIS: Current collection rate is {kpis.collection_rate}%. Automated follow-ups recommended for {kpis.defaulters_count} outstanding student accounts.
+          <div className="mt-4 p-4 bg-gray-900 border border-gray-800 flex items-center gap-4">
+            <div className="h-2 w-2 bg-emerald-500 animate-pulse rounded-full" />
+            <p className="text-[11px] font-black text-gray-100 uppercase tracking-tight">
+              INSIGHT: EFFICIENCY INDEX IS {kpis.collection_rate}%. MONITORING {kpis.defaulters_count} ACCOUNTS FOR DELINQUENCY.
             </p>
           </div>
         </div>

@@ -295,12 +295,24 @@ export default function FeeEntryModal({ onClose, onPaymentSuccess }: any) {
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
-                            <Select value={formData.payment_method} onValueChange={v => setFormData({ ...formData, payment_method: v })}>
-                              <SelectTrigger className="font-bold text-xs h-10 uppercase"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {PAYMENT_METHODS.map(m => <SelectItem key={m.value} value={m.value} className="text-xs font-bold uppercase">{m.label}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase text-gray-500">Payment Method</Label>
+                              <div className="grid grid-cols-2 gap-2">
+                                {PAYMENT_METHODS.map(m => (
+                                  <button
+                                    key={m.value}
+                                    type="button"
+                                    onClick={() => setFormData({ ...formData, payment_method: m.value })}
+                                    className={`p-3 border-2 font-black text-[10px] uppercase transition-all ${formData.payment_method === m.value
+                                        ? 'border-blue-600 bg-blue-600 text-white shadow-md'
+                                        : 'border-gray-100 bg-white text-gray-400 hover:border-blue-200'
+                                      }`}
+                                  >
+                                    {m.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                             <Input
                               placeholder="RECEIPT NO"
                               className="text-xs font-bold h-10 uppercase"
