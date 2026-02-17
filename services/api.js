@@ -130,6 +130,10 @@ class ApiService {
     });
   }
 
+  static getStudentFeeStatus(studentId) {
+    return ApiService.request(`/api/fees/student-status/?student_id=${studentId}`);
+  }
+
   /*-----------------------------------------------------------*
    |  Student management                                       |
    *-----------------------------------------------------------*/
