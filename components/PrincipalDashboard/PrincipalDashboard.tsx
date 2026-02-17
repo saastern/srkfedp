@@ -27,12 +27,30 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
     const fetchStats = async () => {
       try {
         setLoading(true)
+        console.log('🏫 [PRINCIPAL DASHBOARD] Fetching dashboard summary...')
+
         const response = await ApiService.getPrincipalDashboardSummary()
+
+        // 🔍 DEBUG: Log the full response in production
+        console.log('📊 [DASHBOARD RESPONSE]', response)
+
         if (response.success) {
           setData(response.summary)
+
+          // 🔍 DEBUG: Log specific data points for debugging
+          console.log('✅ Dashboard data loaded successfully')
+          console.log('📈 Summary Data:', {
+            totalStudents: response.summary?.students?.total_count,
+            totalClasses: response.summary?.students?.total_classes,
+            feeStats: response.summary?.fees,
+            attendanceStats: response.summary?.attendance,
+            academicStats: response.summary?.academic
+          })
+        } else {
+          console.error('❌ Dashboard API returned success=false')
         }
       } catch (error) {
-        console.error('Error fetching dashboard stats:', error)
+        console.error('❌ [DASHBOARD ERROR]', error)
       } finally {
         setLoading(false)
       }
