@@ -241,7 +241,7 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
             </thead>
             <tbody className="divide-y divide-gray-50">
               {(filteredTransactions.length > 0 ? filteredTransactions : transactions).map((tx: any, i: number) => (
-                <tr key={i} className="hover:bg-blue-50/30 transition-colors">
+                <tr key={tx.id || i} className="hover:bg-blue-50/30 transition-colors">
                   <td className="px-6 py-4 text-[10px] font-bold text-gray-500">{tx.date}</td>
                   <td className="px-6 py-4">
                     <div className="text-[11px] font-black text-gray-900 uppercase">{tx.student || tx.student_name}</div>
@@ -249,8 +249,8 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
                   </td>
                   <td className="px-6 py-4">
                     <Badge variant="outline" className={`text-[8px] font-black rounded-none ${tx.method === 'CASH' ? 'border-orange-200 text-orange-700 bg-orange-50' :
-                        tx.method === 'UPI' ? 'border-blue-200 text-blue-700 bg-blue-50' :
-                          'border-gray-200 text-gray-600 bg-gray-50'
+                      tx.method === 'UPI' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                        'border-gray-200 text-gray-600 bg-gray-50'
                       }`}>
                       {tx.method}
                     </Badge>
@@ -260,8 +260,9 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
                   <td className="px-4 py-4 text-right">
                     <button
                       onClick={() => handleDeleteTransaction(tx.id)}
-                      className="text-gray-300 hover:text-red-500 transition-colors"
+                      className="text-gray-300 hover:text-red-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                       title="Delete Transaction"
+                      disabled={!tx.id}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                     </button>
