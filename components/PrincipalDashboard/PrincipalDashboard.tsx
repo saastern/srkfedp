@@ -8,7 +8,9 @@ import FeeEntryModal from './FeeEntryModal'
 import StudentManagementDashboard from './StudentManagementDashboard'
 import FeeDashboard from './FeeDashboard'
 import StaffManagementDashboard from './StaffManagementDashboard'
+import StudentProfileModal from './StudentProfileModal'
 import ApiService from '@/services/api'
+import AcademicDashboard from './AcademicDashboard'
 
 interface PrincipalDashboardProps {
   teacher: any
@@ -114,7 +116,7 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
                 </div>
                 <div className="bg-white border border-gray-200 p-4 shadow-sm">
                   <div className="text-[10px] font-black text-gray-400 uppercase mb-1">Month Collection</div>
-                  <div className="text-3xl font-bold text-orange-700">₹{(data?.fees?.mtd_collected / 1000).toFixed(0)}K</div>
+                  <div className="text-3xl font-bold text-orange-700">₹{data?.fees?.mtd_collected ? (data?.fees?.mtd_collected / 1000).toFixed(1) : '0'}K</div>
                   <div className="text-[10px] text-gray-500 font-bold mt-1">MTD REVENUE</div>
                 </div>
                 <div className="bg-white border border-gray-200 p-4 shadow-sm">
@@ -195,11 +197,8 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
           {activeTab === 'fees' && <FeeDashboard teacher={teacher} onBack={() => setActiveTab('overview')} onLogout={onLogout} />}
           {activeTab === 'students' && <StudentManagementDashboard onClose={() => setActiveTab('overview')} />}
           {activeTab === 'staff' && <StaffManagementDashboard onClose={() => setActiveTab('overview')} />}
-          {activeTab === 'academics' && (
-            <div className="bg-amber-50 border border-amber-200 p-6 text-amber-800 font-bold text-center italic">
-              Detailed {activeTab} module is under construction. <br /> Use the Dashboard Overview for key metrics.
-            </div>
-          )}
+          {activeTab === 'academics' && <AcademicDashboard onClose={() => setActiveTab('overview')} />}
+          {activeTab === 'exam_results' && <AcademicDashboard onClose={() => setActiveTab('overview')} />}
         </main>
       </div>
 

@@ -20,12 +20,23 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
   const [loading, setLoading] = useState(true)
   const [filteredTransactions, setFilteredTransactions] = useState<any[]>([])
   const [filters, setFilters] = useState<any>({})
+  const [kpis, setKpis] = useState<any>({
+    today_collected: 0,
+    mtd_collected: 0,
+    total_expected: 0,
+    collected: 0,
+    pending: 0,
+    efficiency: 0,
+    defaulters_count: 0,
+    collection_rate: 0
+  })
 
-  const fetchFeeData = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true)
       const response = await ApiService.request('/api/fees/dashboard/')
       setData(response)
+      setKpis(response.kpis || {})
     } catch (error) {
       console.error('Error fetching fee dashboard:', error)
     } finally {
@@ -37,15 +48,35 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
     const activeFilters = { ...filters, ...newFilters }
     setFilters(activeFilters)
     try {
-      const resp = await ApiService.getTransactions(activeFilters)
-      setFilteredTransactions(resp.transactions || [])
+      setLoading(true)
+      const resp = await ApiService.request('/api/fees/transactions/', { params: activeFilters })
+      setFilteredTransactions(resp.results || [])
     } catch (err) {
-      console.error('Error filtering transactions:', err)
+      console.error('Failed to fetch filtered transactions:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteTransaction = async (txId: number) => {
+    if (!confirm('Are you sure you want to delete this transaction? This will revert the student balance.')) return
+
+    try {
+      const res = await ApiService.deleteTransaction(txId)
+      if (res.success) {
+        // Refresh everything
+        fetchDashboardData()
+        fetchFilteredTransactions({})
+      }
+    } catch (err) {
+      console.error('Delete failed:', err)
+      alert('Failed to delete transaction.')
     }
   }
 
   useEffect(() => {
-    fetchFeeData()
+    fetchDashboardData()
+    fetchFilteredTransactions({}) // Fetch initial transactions for the table
   }, [])
 
   if (loading) {
@@ -68,7 +99,7 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
     )
   }
 
-  const kpis = data?.kpis || {}
+  // const kpis = data?.kpis || {} // Removed, now using state
   const chartData = data?.charts?.monthly_collections || []
   const transactions = data?.recent_transactions || []
 
@@ -94,6 +125,12 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
         <div className="bg-white border-l-4 border-l-blue-600 border border-gray-200 p-4 shadow-sm">
           <div className="text-[10px] font-black text-gray-400 uppercase">Total Expected</div>
           <div className="text-2xl font-black text-gray-900">₹{kpis.total_expected?.toLocaleString()}</div>
+        </div>
+
+        <div className="bg-white border-l-4 border-l-blue-400 border border-gray-200 p-4 shadow-sm">
+          <div className="text-[10px] font-black text-gray-400 uppercase">MTD Collection</div>
+          <div className="text-2xl font-black text-blue-600">₹{kpis.mtd_collected?.toLocaleString() || '0'}</div>
+          <div className="text-[8px] font-bold text-gray-400 uppercase mt-1">MONTH TO DATE</div>
         </div>
 
         <div className="bg-gray-900 border-l-4 border-l-yellow-400 border border-gray-200 p-4 shadow-sm">
@@ -199,6 +236,7 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
                 <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase">Method</th>
                 <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase">Receipt</th>
                 <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase text-right">Amount</th>
+                <th className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase text-center w-10"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -219,6 +257,15 @@ export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboard
                   </td>
                   <td className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase">{tx.receipt}</td>
                   <td className="px-6 py-4 text-sm font-black text-emerald-600 text-right">₹{tx.amount?.toLocaleString()}</td>
+                  <td className="px-4 py-4 text-right">
+                    <button
+                      onClick={() => handleDeleteTransaction(tx.id)}
+                      className="text-gray-300 hover:text-red-500 transition-colors"
+                      title="Delete Transaction"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>

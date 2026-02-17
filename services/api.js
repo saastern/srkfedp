@@ -139,6 +139,12 @@ class ApiService {
     return ApiService.request(`/api/fees/transactions/?${params}`);
   }
 
+  static deleteTransaction(txId) {
+    return ApiService.request(`/api/fees/transactions/${txId}/`, {
+      method: 'DELETE'
+    });
+  }
+
   /*-----------------------------------------------------------*
    |  Student management                                       |
    *-----------------------------------------------------------*/
