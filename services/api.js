@@ -88,7 +88,7 @@ class ApiService {
    |  Principal Dashboard                                      |
    *-----------------------------------------------------------*/
   static getPrincipalDashboardSummary() {
-    return ApiService.request('/api/dashboard/api/principal/summary/');
+    return ApiService.request('/api/dashboard/principal/summary/');
   }
 
   static getFeeDashboard() {
