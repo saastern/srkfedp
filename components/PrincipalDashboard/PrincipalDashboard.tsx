@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { DollarSign, Users, BookOpen, GraduationCap, Receipt } from 'lucide-react'
+import { DollarSign, Users, BookOpen, GraduationCap, Receipt, Loader2 } from 'lucide-react'
 import FeeEntryModal from './FeeEntryModal'
 import StudentManagementDashboard from './StudentManagementDashboard'
 import FeeDashboard from './FeeDashboard'
+import ApiService from '@/services/api'
 
 interface PrincipalDashboardProps {
   teacher: any
@@ -16,11 +17,33 @@ interface PrincipalDashboardProps {
 export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashboardProps) {
   const [currentView, setCurrentView] = useState('main') // 'main' | 'fees' | 'students'
   const [showFeeEntry, setShowFeeEntry] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState<any>(null)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true)
+        const response = await ApiService.getPrincipalDashboardSummary()
+        if (response.success) {
+          setData(response.summary)
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (currentView === 'main') {
+      fetchStats()
+    }
+  }, [currentView])
 
   // If viewing Fee Dashboard
   if (currentView === 'fees') {
     return (
-      <FeeDashboard 
+      <FeeDashboard
         teacher={teacher}
         onBack={() => setCurrentView('main')}
         onLogout={onLogout}
@@ -71,8 +94,8 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
         {/* Main Actions Grid - 5 Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
           {/* 1. Fee Management */}
-          <Card 
-            className="hover:shadow-xl transition-all cursor-pointer group" 
+          <Card
+            className="hover:shadow-xl transition-all cursor-pointer group"
             onClick={() => setCurrentView('fees')}
           >
             <CardHeader className="pb-4">
@@ -89,8 +112,8 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
           </Card>
 
           {/* 2. Fee Entry */}
-          <Card 
-            className="hover:shadow-xl transition-all cursor-pointer group" 
+          <Card
+            className="hover:shadow-xl transition-all cursor-pointer group"
             onClick={() => setShowFeeEntry(true)}
           >
             <CardHeader className="pb-4">
@@ -107,8 +130,8 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
           </Card>
 
           {/* 3. Students */}
-          <Card 
-            className="hover:shadow-xl transition-all cursor-pointer group" 
+          <Card
+            className="hover:shadow-xl transition-all cursor-pointer group"
             onClick={() => setCurrentView('students')}
           >
             <CardHeader className="pb-4">
@@ -134,7 +157,9 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
             </CardHeader>
             <CardContent>
               <div className="text-center py-2">
-                <p className="text-3xl font-black text-gray-900">94%</p>
+                <p className="text-3xl font-black text-gray-900">
+                  {loading ? <Loader2 className="animate-spin inline" /> : `${data?.academics?.pass_rate}%`}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">Pass Rate</p>
               </div>
             </CardContent>
@@ -150,7 +175,9 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
             </CardHeader>
             <CardContent>
               <div className="text-center py-2">
-                <p className="text-3xl font-black text-gray-900">12</p>
+                <p className="text-3xl font-black text-gray-900">
+                  {loading ? <Loader2 className="animate-spin inline" /> : data?.students?.total_classes}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">Active Classes</p>
               </div>
             </CardContent>
@@ -167,15 +194,21 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Students Present</span>
-                  <span className="font-bold">186/240</span>
+                  <span className="font-bold">
+                    {loading ? '...' : `${data?.students?.present_today}/${data?.students?.strength_today}`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Fee Collections</span>
-                  <span className="font-bold text-green-600">₹45,000</span>
+                  <span className="font-bold text-green-600">
+                    {loading ? '...' : `₹${data?.fees?.today_collected.toLocaleString()}`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Active Classes</span>
-                  <span className="font-bold">8/12</span>
+                  <span className="text-muted-foreground">Attendance Rate</span>
+                  <span className="font-bold">
+                    {loading ? '...' : `${data?.students?.attendance_rate}%`}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -188,16 +221,22 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
             <CardContent>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Avg Attendance</span>
-                  <span className="font-bold text-green-600">92%</span>
+                  <span className="text-muted-foreground">Overall Attendance</span>
+                  <span className="font-bold text-green-600">
+                    {loading ? '...' : `${data?.students?.attendance_rate}%`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Fee Collection</span>
-                  <span className="font-bold text-emerald-600">₹1.98L</span>
+                  <span className="text-muted-foreground">Fee Collection (MTD)</span>
+                  <span className="font-bold text-emerald-600">
+                    {loading ? '...' : `₹${(data?.fees?.mtd_collected / 100000).toFixed(2)}L`}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Pending Fees</span>
-                  <span className="font-bold text-orange-600">₹47K</span>
+                  <span className="font-bold text-orange-600">
+                    {loading ? '...' : `₹${(data?.fees?.pending / 1000).toFixed(0)}K`}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -226,7 +265,7 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
 
       {/* Fee Entry Modal */}
       {showFeeEntry && (
-        <FeeEntryModal 
+        <FeeEntryModal
           onClose={() => setShowFeeEntry(false)}
           onPaymentSuccess={(paymentData) => {
             console.log('Payment saved:', paymentData)

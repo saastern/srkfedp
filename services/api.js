@@ -85,6 +85,13 @@ class ApiService {
   }
 
   /*-----------------------------------------------------------*
+   |  Principal Dashboard                                      |
+   *-----------------------------------------------------------*/
+  static getPrincipalDashboardSummary() {
+    return ApiService.request('/api/dashboard/api/principal/summary/');
+  }
+
+  /*-----------------------------------------------------------*
    |  Attendance - UPDATED WITH NEW METHODS                   |
    *-----------------------------------------------------------*/
   static getClassStudents(classId) {
