@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Users, Search, User, GraduationCap, ChevronRight, ChevronLeft, TrendingUp, Award, BookOpen, ArrowLeft
+  Users, Search, User, GraduationCap, ChevronRight, ChevronLeft, TrendingUp, Award, BookOpen, ArrowLeft, UserPlus, Trash2, X
 } from 'lucide-react'
 import StudentProfileModal from './StudentProfileModal'
 import ApiService from '@/services/api'
@@ -22,6 +22,18 @@ const CLASS_STYLES = [
   { color: 'from-cyan-500 to-sky-500', bgColor: 'bg-sky-50', borderColor: 'border-sky-200', icon: '🔬' },
 ]
 
+// Custom class ordering: Nursery → LKG → UKG → 1st → ... → 10th
+function getClassOrder(name: string): number {
+  const lower = name.toLowerCase().trim()
+  if (lower.includes('nursery')) return 1
+  if (lower === 'lkg' || lower.includes('lower kg') || lower.includes('l.k.g')) return 2
+  if (lower === 'ukg' || lower.includes('upper kg') || lower.includes('u.k.g')) return 3
+  // Extract numeric class  
+  const match = lower.match(/(\d+)/)
+  if (match) return 10 + parseInt(match[1])
+  return 100
+}
+
 export default function StudentManagementDashboard({ onClose }: any) {
   const [currentView, setCurrentView] = useState('classes')
   const [classes, setClasses] = useState<any[]>([])
@@ -31,6 +43,10 @@ export default function StudentManagementDashboard({ onClose }: any) {
   const [showStudentProfile, setShowStudentProfile] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [showAddStudent, setShowAddStudent] = useState(false)
+  const [addForm, setAddForm] = useState({ first_name: '', last_name: '', roll_number: '', father_phone: '', mother_phone: '' })
+  const [addLoading, setAddLoading] = useState(false)
+  const [addError, setAddError] = useState('')
 
   useEffect(() => {
     fetchClasses()
@@ -41,8 +57,9 @@ export default function StudentManagementDashboard({ onClose }: any) {
       setLoading(true)
       const res = await ApiService.getMarksClasses()
       if (res.classes) {
-        // Map visual styles
-        const styledClasses = res.classes.map((cls: any, idx: number) => ({
+        // Sort classes: Nursery → LKG → UKG → 1 → ... → 10
+        const sorted = [...res.classes].sort((a: any, b: any) => getClassOrder(a.name) - getClassOrder(b.name))
+        const styledClasses = sorted.map((cls: any, idx: number) => ({
           ...cls,
           ...CLASS_STYLES[idx % CLASS_STYLES.length]
         }))
@@ -76,6 +93,49 @@ export default function StudentManagementDashboard({ onClose }: any) {
     setSelectedClass(null)
     setStudents([])
     setSearchQuery('')
+    setShowAddStudent(false)
+  }
+
+  const handleAddStudent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedClass) return
+    setAddLoading(true)
+    setAddError('')
+    try {
+      const payload = {
+        first_name: addForm.first_name,
+        last_name: addForm.last_name,
+        roll_number: addForm.roll_number,
+        class_id: selectedClass.id,
+        father_phone: addForm.father_phone || '',
+        mother_phone: addForm.mother_phone || ''
+      }
+      await ApiService.addStudent(payload)
+      // Refresh student list
+      const res = await ApiService.getMarksStudents(selectedClass.id)
+      if (res.students) setStudents(res.students)
+      setShowAddStudent(false)
+      setAddForm({ first_name: '', last_name: '', roll_number: '', father_phone: '', mother_phone: '' })
+    } catch (err: any) {
+      setAddError(err.message || 'Failed to add student')
+    } finally {
+      setAddLoading(false)
+    }
+  }
+
+  const handleDeleteStudent = async (studentId: string) => {
+    if (!confirm('Are you sure you want to delete this student? This action cannot be undone.')) return
+    try {
+      await ApiService.deleteStudent(studentId)
+      // Refresh student list
+      if (selectedClass) {
+        const res = await ApiService.getMarksStudents(selectedClass.id)
+        if (res.students) setStudents(res.students)
+      }
+    } catch (err) {
+      console.error('Failed to delete student:', err)
+      alert('Failed to delete student.')
+    }
   }
 
   const filteredStudents = useMemo(() => {
@@ -119,6 +179,14 @@ export default function StudentManagementDashboard({ onClose }: any) {
             <p className="text-[10px] text-gray-500 font-bold uppercase">System Console / Academic Records / Students</p>
           </div>
         </div>
+        {currentView === 'students' && (
+          <Button
+            className="rounded-none bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-10 shadow-sm"
+            onClick={() => setShowAddStudent(true)}
+          >
+            <UserPlus className="mr-2 h-4 w-4" /> ADD STUDENT
+          </Button>
+        )}
       </div>
 
       {currentView === 'classes' && (
@@ -167,6 +235,48 @@ export default function StudentManagementDashboard({ onClose }: any) {
             </div>
           </div>
 
+          {/* Add Student Modal */}
+          {showAddStudent && (
+            <div className="bg-white border-2 border-blue-600 p-6 shadow-lg animate-in slide-in-from-top-2">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-black text-sm uppercase text-gray-900 flex items-center gap-2">
+                  <UserPlus className="h-4 w-4 text-blue-600" /> Add New Student to {selectedClass?.name}
+                </h3>
+                <button onClick={() => { setShowAddStudent(false); setAddError('') }} className="text-gray-400 hover:text-black">
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              {addError && <div className="text-red-600 text-xs font-bold mb-3 bg-red-50 p-2 border border-red-200">{addError}</div>}
+              <form onSubmit={handleAddStudent} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">First Name *</label>
+                  <input required className="w-full border border-gray-300 p-2 text-sm font-bold focus:border-blue-500 outline-none" value={addForm.first_name} onChange={e => setAddForm({ ...addForm, first_name: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Last Name *</label>
+                  <input required className="w-full border border-gray-300 p-2 text-sm font-bold focus:border-blue-500 outline-none" value={addForm.last_name} onChange={e => setAddForm({ ...addForm, last_name: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Roll Number *</label>
+                  <input required className="w-full border border-gray-300 p-2 text-sm font-bold focus:border-blue-500 outline-none" value={addForm.roll_number} onChange={e => setAddForm({ ...addForm, roll_number: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Father Phone</label>
+                  <input className="w-full border border-gray-300 p-2 text-sm font-bold focus:border-blue-500 outline-none" value={addForm.father_phone} onChange={e => setAddForm({ ...addForm, father_phone: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Mother Phone</label>
+                  <input className="w-full border border-gray-300 p-2 text-sm font-bold focus:border-blue-500 outline-none" value={addForm.mother_phone} onChange={e => setAddForm({ ...addForm, mother_phone: e.target.value })} />
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-none font-black h-10" disabled={addLoading}>
+                    {addLoading ? 'ADDING...' : 'ADD STUDENT'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Array(6).fill(0).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
@@ -176,24 +286,35 @@ export default function StudentManagementDashboard({ onClose }: any) {
               {filteredStudents.map((student) => (
                 <div
                   key={student.id}
-                  onClick={() => {
-                    setSelectedStudent(student)
-                    setShowStudentProfile(true)
-                  }}
-                  className="bg-white border border-gray-200 p-4 shadow-sm hover:border-blue-500 cursor-pointer group flex items-center gap-4"
+                  className="bg-white border border-gray-200 p-4 shadow-sm hover:border-blue-500 cursor-pointer group flex items-center gap-4 relative"
                 >
-                  <div className="w-12 h-12 bg-gray-900 text-white flex items-center justify-center font-black text-lg">
-                    {student.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="text-xs font-black text-gray-900 uppercase group-hover:text-blue-600 transition-colors truncate w-40">
-                      {student.name}
+                  <div
+                    className="flex items-center gap-4 flex-1"
+                    onClick={() => {
+                      setSelectedStudent(student)
+                      setShowStudentProfile(true)
+                    }}
+                  >
+                    <div className="w-12 h-12 bg-gray-900 text-white flex items-center justify-center font-black text-lg flex-shrink-0">
+                      {student.name.charAt(0)}
                     </div>
-                    <div className="text-[10px] font-bold text-gray-500">ROLL: {student.rollNo}</div>
-                    <div className="mt-1 flex gap-1">
-                      <span className="bg-emerald-100 text-emerald-700 text-[8px] font-black px-1 py-0.5 rounded-none">ACTIVE</span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-black text-gray-900 uppercase group-hover:text-blue-600 transition-colors truncate">
+                        {student.name}
+                      </div>
+                      <div className="text-[10px] font-bold text-gray-500">ROLL: {student.rollNo}</div>
+                      <div className="mt-1 flex gap-1">
+                        <span className="bg-emerald-100 text-emerald-700 text-[8px] font-black px-1 py-0.5 rounded-none">ACTIVE</span>
+                      </div>
                     </div>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteStudent(student.id) }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-500 p-1"
+                    title="Delete Student"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
             </div>

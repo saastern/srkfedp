@@ -1,332 +1,385 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
-    Trophy, BookOpen, Clipboard, CheckCircle2,
-    ChevronRight, Calendar, Users, Award,
-    BarChart3, Save, ArrowLeft
+    BookOpen, ChevronDown, ChevronRight, FileText, ClipboardList, Award, ArrowLeft,
+    Users, PenTool, BarChart3, Loader2
 } from 'lucide-react'
 import ApiService from '@/services/api'
 
-export default function AcademicDashboard({ onClose }: { onClose: () => void }) {
-    const [view, setView] = useState<'exams' | 'marks' | 'results'>('exams')
-    const [loading, setLoading] = useState(true)
-    const [exams, setExams] = useState<any[]>([])
+// Custom class ordering
+function getClassOrder(name: string): number {
+    const lower = name.toLowerCase().trim()
+    if (lower.includes('nursery')) return 1
+    if (lower === 'lkg' || lower.includes('lower kg') || lower.includes('l.k.g')) return 2
+    if (lower === 'ukg' || lower.includes('upper kg') || lower.includes('u.k.g')) return 3
+    const match = lower.match(/(\d+)/)
+    if (match) return 10 + parseInt(match[1])
+    return 100
+}
+
+interface ExamSection {
+    label: string
+    key: string
+    icon: React.ReactNode
+    color: string
+    bgColor: string
+    borderColor: string
+    items: { label: string; key: string }[]
+}
+
+const EXAM_STRUCTURE: ExamSection[] = [
+    {
+        label: 'Formative Assessment',
+        key: 'FA',
+        icon: <PenTool className="h-5 w-5" />,
+        color: 'text-blue-700',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200',
+        items: [
+            { label: 'FA-1 (Unit Test 1)', key: 'FA1' },
+            { label: 'FA-2 (Unit Test 2)', key: 'FA2' },
+            { label: 'FA-3 (Unit Test 3)', key: 'FA3' },
+            { label: 'FA-4 (Unit Test 4)', key: 'FA4' },
+        ]
+    },
+    {
+        label: 'Summative Assessment',
+        key: 'SA',
+        icon: <Award className="h-5 w-5" />,
+        color: 'text-emerald-700',
+        bgColor: 'bg-emerald-50',
+        borderColor: 'border-emerald-200',
+        items: [
+            { label: 'SA-1 (Half Yearly)', key: 'SA1' },
+            { label: 'SA-2 (Annual Exam)', key: 'SA2' },
+        ]
+    },
+    {
+        label: 'Assignments & Projects',
+        key: 'ASSIGN',
+        icon: <ClipboardList className="h-5 w-5" />,
+        color: 'text-orange-700',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-200',
+        items: [
+            { label: 'Assignment 1', key: 'ASSIGN1' },
+            { label: 'Assignment 2', key: 'ASSIGN2' },
+            { label: 'Project Work', key: 'PROJECT' },
+        ]
+    }
+]
+
+export default function AcademicDashboard({ onClose }: any) {
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ FA: true })
     const [classes, setClasses] = useState<any[]>([])
-    const [selectedExam, setSelectedExam] = useState<any>(null)
+    const [selectedExam, setSelectedExam] = useState<string | null>(null)
     const [selectedClass, setSelectedClass] = useState<any>(null)
-    const [marksData, setMarksData] = useState<any[]>([])
+    const [students, setStudents] = useState<any[]>([])
     const [subjects, setSubjects] = useState<any[]>([])
+    const [marks, setMarks] = useState<Record<string, Record<string, string>>>({})
+    const [loading, setLoading] = useState(false)
+    const [saving, setSaving] = useState(false)
+    const [mode, setMode] = useState<'browse' | 'marks' | 'results'>('browse')
+    const [actionType, setActionType] = useState<'input' | 'view'>('input')
 
     useEffect(() => {
-        fetchExams()
         fetchClasses()
     }, [])
-
-    const fetchExams = async () => {
-        try {
-            const res = await ApiService.getExams()
-            setExams(res.exams || [])
-        } catch (err) {
-            console.error('Exams fetch failed:', err)
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const fetchClasses = async () => {
         try {
             const res = await ApiService.getMarksClasses()
-            setClasses(res.classes || [])
+            if (res.classes) {
+                const sorted = [...res.classes].sort((a: any, b: any) => getClassOrder(a.name) - getClassOrder(b.name))
+                setClasses(sorted)
+            }
         } catch (err) {
-            console.error('Classes fetch failed:', err)
+            console.error('Failed to fetch classes:', err)
         }
     }
 
-    const handleStartMarksEntry = async (exam: any, cls: any) => {
-        setSelectedExam(exam)
+    const toggleSection = (key: string) => {
+        setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }))
+    }
+
+    const handleExamAction = (examKey: string, action: 'input' | 'view') => {
+        setSelectedExam(examKey)
+        setActionType(action)
+        setMode('marks')
+        setSelectedClass(null)
+        setStudents([])
+        setSubjects([])
+        setMarks({})
+    }
+
+    const handleClassSelect = async (cls: any) => {
         setSelectedClass(cls)
         setLoading(true)
         try {
-            // 1. Fetch Students
-            const studentsRes = await ApiService.getMarksStudents(cls.id)
-            // 2. Fetch Subjects
-            const subjectsRes = await ApiService.getClassSubjects(cls.id)
-            setSubjects(subjectsRes.subjects || [])
+            const [studentsRes, subjectsRes] = await Promise.all([
+                ApiService.getMarksStudents(cls.id),
+                ApiService.getClassSubjects(cls.id)
+            ])
+            if (studentsRes.students) setStudents(studentsRes.students)
+            if (subjectsRes.subjects) setSubjects(subjectsRes.subjects)
 
-            // Initialize marks grid
-            const students = studentsRes.students || []
-            setMarksData(students.map((s: any) => ({
-                id: s.id,
-                name: s.name,
-                rollNo: s.rollNo,
-                marks: subjectsRes.subjects.reduce((acc: any, sub: any) => ({ ...acc, [sub.id]: '' }), {})
-            })))
-
-            setView('marks')
+            // Initialize empty marks grid
+            const initMarks: Record<string, Record<string, string>> = {}
+            studentsRes.students?.forEach((s: any) => {
+                initMarks[s.id] = {}
+                subjectsRes.subjects?.forEach((subj: any) => {
+                    initMarks[s.id][subj.id] = ''
+                })
+            })
+            setMarks(initMarks)
         } catch (err) {
-            console.error('Entry setup failed:', err)
+            console.error('Failed to fetch students/subjects:', err)
         } finally {
             setLoading(false)
         }
     }
 
-    const handleViewResults = async (exam: any, cls: any) => {
-        setSelectedExam(exam)
-        setSelectedClass(cls)
-        setLoading(true)
-        try {
-            const res = await ApiService.request(`/api/assessments/class-results/?class_id=${cls.id}&exam_id=${exam.id}`)
-            setMarksData(res.results || [])
-            setView('results')
-        } catch (err) {
-            console.error('Results fetch failed:', err)
-        } finally {
-            setLoading(false)
-        }
+    const handleMarkChange = (studentId: string, subjectId: string, value: string) => {
+        setMarks(prev => ({
+            ...prev,
+            [studentId]: {
+                ...prev[studentId],
+                [subjectId]: value
+            }
+        }))
     }
 
     const handleSaveMarks = async () => {
-        setLoading(true)
+        if (!selectedExam || !selectedClass) return
+        setSaving(true)
         try {
-            const payload = {
-                exam_id: selectedExam.id,
+            const bulkData = {
+                exam_type: selectedExam,
                 class_id: selectedClass.id,
-                marks: marksData.reduce((acc: any, student: any) => {
-                    acc[student.id] = student.marks
-                    return acc
-                }, {})
+                marks: Object.entries(marks).flatMap(([studentId, subjMarks]) =>
+                    Object.entries(subjMarks)
+                        .filter(([, value]) => value !== '')
+                        .map(([subjectId, value]) => ({
+                            student_id: studentId,
+                            subject_id: subjectId,
+                            marks_obtained: parseFloat(value)
+                        }))
+                )
             }
-            const res = await ApiService.request('/api/assessments/save-sheet/', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            })
-            if (res.success) {
-                alert('Marks saved and results generated!')
-                setView('exams')
-            }
+            await ApiService.saveBulkMarks(bulkData)
+            alert('Marks saved successfully!')
         } catch (err) {
-            console.error('Save failed:', err)
+            console.error('Failed to save marks:', err)
+            alert('Failed to save marks. Please try again.')
         } finally {
-            setLoading(false)
+            setSaving(false)
         }
     }
 
-    if (loading && view !== 'marks') return (
-        <div className="p-8 space-y-4">
-            <Skeleton className="h-10 w-1/4" />
-            <div className="grid grid-cols-3 gap-6">
-                <Skeleton className="h-48" />
-                <Skeleton className="h-48" />
-                <Skeleton className="h-48" />
-            </div>
-        </div>
-    )
+    const handleBack = () => {
+        if (selectedClass) {
+            setSelectedClass(null)
+            setStudents([])
+            setSubjects([])
+            setMarks({})
+        } else if (mode !== 'browse') {
+            setMode('browse')
+            setSelectedExam(null)
+        } else {
+            onClose()
+        }
+    }
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="bg-gray-900 px-6 py-4 flex justify-between items-center shadow-lg border-b border-gray-800">
+            <div className="flex items-center justify-between border-b pb-4 border-gray-200">
                 <div className="flex items-center gap-4">
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
+                    <Button variant="ghost" size="sm" onClick={handleBack} className="hover:bg-gray-100 rounded-none border border-gray-300">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        {selectedClass ? 'BACK TO CLASSES' : mode !== 'browse' ? 'BACK TO EXAMS' : 'BACK TO OVERVIEW'}
+                    </Button>
                     <div>
-                        <h1 className="text-xl font-black text-white tracking-tighter uppercase">Academic & Assessments</h1>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Exam Cycle Manager v2.0</p>
+                        <h1 className="text-xl font-black uppercase tracking-tighter">
+                            {selectedClass ? `${selectedExam} — ${selectedClass.name}` : mode !== 'browse' ? `${selectedExam} — Select Class` : 'Examinations & Results'}
+                        </h1>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase">System Console / Academic Assessment Module</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    {['exams', 'results'].map((t) => (
-                        <button
-                            key={t}
-                            onClick={() => setView(t as any)}
-                            className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all ${view === t ? 'bg-amber-400 text-black' : 'text-gray-400 hover:text-white'
-                                }`}
-                        >
-                            {t}
-                        </button>
+            </div>
+
+            {/* BROWSE MODE: Collapsible exam sections */}
+            {mode === 'browse' && (
+                <div className="space-y-4">
+                    {EXAM_STRUCTURE.map((section) => (
+                        <div key={section.key} className={`bg-white border ${section.borderColor} overflow-hidden shadow-sm`}>
+                            {/* Section Header */}
+                            <button
+                                onClick={() => toggleSection(section.key)}
+                                className={`w-full flex items-center justify-between p-5 ${section.bgColor} hover:opacity-90 transition-all`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`${section.color}`}>{section.icon}</div>
+                                    <div className="text-left">
+                                        <div className={`font-black text-sm uppercase tracking-tight ${section.color}`}>{section.label}</div>
+                                        <div className="text-[10px] font-bold text-gray-500">{section.items.length} Components</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] font-black uppercase ${section.color} bg-white px-3 py-1 border ${section.borderColor}`}>
+                                        {section.items.length} Tests
+                                    </span>
+                                    {expandedSections[section.key] ? (
+                                        <ChevronDown className={`h-5 w-5 ${section.color}`} />
+                                    ) : (
+                                        <ChevronRight className={`h-5 w-5 ${section.color}`} />
+                                    )}
+                                </div>
+                            </button>
+
+                            {/* Expanded sub-items */}
+                            {expandedSections[section.key] && (
+                                <div className="divide-y divide-gray-100">
+                                    {section.items.map((item) => (
+                                        <div key={item.key} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                                    <FileText className="h-4 w-4 text-gray-500" />
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-black text-gray-900">{item.label}</div>
+                                                    <div className="text-[10px] font-bold text-gray-400">Exam Code: {item.key}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    className="rounded-none bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] h-8 px-3"
+                                                    onClick={() => handleExamAction(item.key, 'input')}
+                                                >
+                                                    <PenTool className="h-3 w-3 mr-1" /> INPUT MARKS
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="rounded-none border-gray-300 font-black text-[10px] h-8 px-3"
+                                                    onClick={() => handleExamAction(item.key, 'view')}
+                                                >
+                                                    <BarChart3 className="h-3 w-3 mr-1" /> VIEW RESULTS
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     ))}
                 </div>
-            </div>
+            )}
 
-            <div className="p-8 max-w-7xl mx-auto">
-                {view === 'exams' && (
-                    <div className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {exams.map((exam) => (
-                                <Card key={exam.id} className="border-2 border-gray-100 shadow-sm hover:border-amber-400 transition-all group overflow-hidden">
-                                    <div className="bg-gray-50 h-2 w-full" />
-                                    <CardHeader className="pb-4">
-                                        <div className="flex justify-between items-start">
-                                            <div className="p-2 bg-amber-50 rounded-lg group-hover:bg-amber-100 transition-colors">
-                                                <Trophy className="w-6 h-6 text-amber-600" />
-                                            </div>
-                                            <Badge variant="outline" className="text-[8px] font-black uppercase text-gray-400 border-gray-200">
-                                                {exam.term || 'Annual'}
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-lg font-black mt-4 uppercase tracking-tight">{exam.name}</CardTitle>
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
-                                            <Calendar className="w-3 h-3" />
-                                            {exam.start_date || 'TBD'} - {exam.end_date || 'TBD'}
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="bg-gray-50 p-3 rounded space-y-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-gray-400 uppercase">Input Marks</label>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {classes.map(cls => (
-                                                        <button
-                                                            key={cls.id}
-                                                            onClick={() => handleStartMarksEntry(exam, cls)}
-                                                            className="bg-white border border-gray-200 py-1 text-[9px] font-black text-gray-600 hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all uppercase"
-                                                        >
-                                                            {cls.name}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2 pt-2 border-t border-gray-200">
-                                                <label className="text-[9px] font-black text-amber-600 uppercase">View Results</label>
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    {classes.map(cls => (
-                                                        <button
-                                                            key={cls.id}
-                                                            onClick={() => handleViewResults(exam, cls)}
-                                                            className="bg-amber-50 border border-amber-200 py-1 text-[9px] font-black text-amber-700 hover:bg-amber-100 transition-all uppercase"
-                                                        >
-                                                            {cls.name}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+            {/* MARKS MODE: Class selection + Marks grid */}
+            {mode === 'marks' && !selectedClass && (
+                <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 p-4 flex items-center gap-3">
+                        <BookOpen className="h-5 w-5 text-blue-600" />
+                        <div>
+                            <div className="font-black text-sm text-blue-900 uppercase">
+                                {actionType === 'input' ? 'Select class to enter marks for' : 'Select class to view results for'} — {selectedExam}
+                            </div>
+                            <div className="text-[10px] font-bold text-blue-500">Choose from the classes below</div>
                         </div>
                     </div>
-                )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {classes.map((cls) => (
+                            <button
+                                key={cls.id}
+                                onClick={() => handleClassSelect(cls)}
+                                className="bg-white border border-gray-200 p-4 hover:border-blue-500 transition-all text-left group"
+                            >
+                                <div className="font-black text-lg group-hover:text-blue-600">{cls.name}</div>
+                                <div className="text-[10px] font-bold text-gray-400">{cls.studentCount} Students</div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
-                {view === 'marks' && (
-                    <div className="space-y-6">
-                        <div className="bg-gray-100 p-6 border-l-4 border-amber-400 flex justify-between items-center">
-                            <div>
-                                <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">{selectedExam?.name}</h2>
-                                <p className="text-[10px] font-black text-gray-500 uppercase">Class: {selectedClass?.name} • Marks Entry Sheet</p>
-                            </div>
-                            <div className="flex gap-4">
-                                <Button variant="outline" onClick={() => setView('exams')} className="rounded-none border-2 font-black uppercase text-xs">Cancel</Button>
-                                <Button onClick={handleSaveMarks} className="rounded-none bg-emerald-600 hover:bg-emerald-700 font-black uppercase text-xs flex gap-2">
-                                    <Save className="w-4 h-4" /> Save & Finalize
-                                </Button>
-                            </div>
+            {/* MARKS ENTRY: Grid of students x subjects */}
+            {mode === 'marks' && selectedClass && (
+                <div className="space-y-4">
+                    {loading ? (
+                        <div className="flex items-center justify-center py-16">
+                            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                            <span className="ml-3 font-black text-gray-500 uppercase text-sm">Loading data...</span>
                         </div>
-
-                        <div className="border border-gray-200 bg-white overflow-x-auto shadow-2xl">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-900 text-white">
-                                    <tr>
-                                        <th className="px-4 py-4 text-[10px] font-black uppercase sticky left-0 bg-gray-900 z-10 w-48">Student Info</th>
-                                        {subjects.map(sub => (
-                                            <th key={sub.id} className="px-4 py-4 text-[10px] font-black uppercase text-center min-w-[100px] border-l border-gray-800">
-                                                {sub.name}
-                                                <div className="text-[8px] text-gray-500 mt-1">MAX: {sub.max_marks || 100}</div>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {marksData.map((student, sIdx) => (
-                                        <tr key={student.id} className="hover:bg-blue-50/50 transition-colors">
-                                            <td className="px-4 py-3 sticky left-0 bg-white border-r border-gray-100 shadow-sm z-10">
-                                                <div className="text-[11px] font-black text-gray-900 uppercase">{student.name}</div>
-                                                <div className="text-[9px] font-bold text-gray-400 uppercase">Roll: {student.rollNo}</div>
-                                            </td>
-                                            {subjects.map(sub => (
-                                                <td key={sub.id} className="px-2 py-2 border-l border-gray-100">
-                                                    <input
-                                                        type="number"
-                                                        value={student.marks[sub.id]}
-                                                        onChange={(e) => {
-                                                            const newMarks = [...marksData]
-                                                            newMarks[sIdx].marks[sub.id] = e.target.value
-                                                            setMarksData(newMarks)
-                                                        }}
-                                                        className="w-full bg-gray-50 border-2 border-transparent focus:border-amber-400 focus:bg-white p-2 text-center text-sm font-black transition-all outline-none"
-                                                        placeholder="-"
-                                                    />
-                                                </td>
+                    ) : (
+                        <>
+                            <div className="bg-white border border-gray-200 overflow-x-auto shadow-sm">
+                                <table className="w-full text-left border-collapse min-w-[600px]">
+                                    <thead>
+                                        <tr className="bg-gray-50 border-b border-gray-200">
+                                            <th className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase sticky left-0 bg-gray-50 z-10">Roll No</th>
+                                            <th className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase sticky left-[60px] bg-gray-50 z-10">Student Name</th>
+                                            {subjects.map((subj: any) => (
+                                                <th key={subj.id} className="px-4 py-3 text-[10px] font-black text-gray-400 uppercase text-center">{subj.name}</th>
                                             ))}
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-
-                {view === 'results' && (
-                    <div className="space-y-6">
-                        <div className="bg-gray-900 p-6 flex justify-between items-center text-white">
-                            <div>
-                                <h2 className="text-xl font-black uppercase tracking-tighter">Result Sheet: {selectedExam?.name}</h2>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase">Class: {selectedClass?.name}</p>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {students.map((student: any) => (
+                                            <tr key={student.id} className="hover:bg-blue-50/30">
+                                                <td className="px-4 py-3 text-xs font-black text-gray-500 sticky left-0 bg-white">{student.rollNo}</td>
+                                                <td className="px-4 py-3 text-xs font-bold text-gray-900 sticky left-[60px] bg-white">{student.name}</td>
+                                                {subjects.map((subj: any) => (
+                                                    <td key={subj.id} className="px-2 py-2 text-center">
+                                                        {actionType === 'input' ? (
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max="100"
+                                                                className="w-16 border border-gray-300 p-1 text-center text-sm font-bold focus:border-blue-500 outline-none"
+                                                                value={marks[student.id]?.[subj.id] || ''}
+                                                                onChange={(e) => handleMarkChange(student.id, subj.id, e.target.value)}
+                                                                placeholder="—"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-sm font-black text-gray-700">
+                                                                {marks[student.id]?.[subj.id] || '—'}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                            <Button onClick={() => setView('exams')} variant="outline" className="border-gray-700 text-white hover:bg-white hover:text-black rounded-none uppercase font-black text-xs">Close</Button>
-                        </div>
 
-                        <div className="bg-white border-2 border-gray-900 shadow-xl overflow-hidden">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50 border-b-2 border-gray-900">
-                                    <tr>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase">Rank / Student</th>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase text-center">Score</th>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase text-center">Percentage</th>
-                                        <th className="px-6 py-4 text-[10px] font-black uppercase text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {marksData.sort((a, b) => b.percentage - a.percentage).map((student, idx) => (
-                                        <tr key={idx} className="hover:bg-amber-50/50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-4">
-                                                    <span className="text-lg font-black text-gray-300 w-8">#{idx + 1}</span>
-                                                    <div>
-                                                        <div className="text-[11px] font-black text-gray-900 uppercase">{student.studentName}</div>
-                                                        <div className="text-[9px] font-bold text-gray-400 uppercase">Roll: {student.rollNo}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="text-sm font-black text-gray-900">{student.totalObtained} / {student.totalMax}</div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="inline-block px-3 py-1 bg-gray-900 text-white font-black text-xs italic">
-                                                    {student.percentage}%
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                {student.percentage >= 33 ? (
-                                                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 font-black uppercase text-[8px]">PROMOTED</Badge>
-                                                ) : (
-                                                    <Badge className="bg-red-100 text-red-700 border-red-200 font-black uppercase text-[8px]">DETAINED</Badge>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
-            </div>
+                            {actionType === 'input' && (
+                                <div className="flex justify-end gap-3">
+                                    <Button variant="outline" className="rounded-none border-gray-300 font-bold" onClick={handleBack}>
+                                        CANCEL
+                                    </Button>
+                                    <Button
+                                        className="rounded-none bg-blue-600 hover:bg-blue-700 text-white font-black shadow-sm"
+                                        onClick={handleSaveMarks}
+                                        disabled={saving}
+                                    >
+                                        {saving ? (
+                                            <><Loader2 className="h-4 w-4 animate-spin mr-2" /> SAVING...</>
+                                        ) : (
+                                            'SAVE ALL MARKS'
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
         </div>
     )
 }

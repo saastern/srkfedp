@@ -232,6 +232,46 @@ class ApiService {
   static getStaffList() {
     return ApiService.request('/api/teachers/list/');
   }
+
+  static addStaff(data) {
+    return ApiService.request('/api/teachers/add/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static updateStaff(staffId, data) {
+    return ApiService.request(`/api/teachers/${staffId}/update/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static deleteStaff(staffId) {
+    return ApiService.request(`/api/teachers/${staffId}/delete/`, {
+      method: 'DELETE',
+    });
+  }
+
+  /*-----------------------------------------------------------*
+   |  Announcements                                            |
+   *-----------------------------------------------------------*/
+  static getAnnouncements() {
+    return ApiService.request('/api/notifications/announcements/');
+  }
+
+  static createAnnouncement(data) {
+    return ApiService.request('/api/notifications/announcements/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static deleteAnnouncement(id) {
+    return ApiService.request(`/api/notifications/announcements/${id}/delete/`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export default ApiService;
