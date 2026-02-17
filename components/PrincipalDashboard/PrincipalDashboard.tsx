@@ -95,61 +95,85 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
           {/* 1. Fee Management */}
           <Card
-            className="hover:shadow-xl transition-all cursor-pointer group"
+            className="hover:shadow-xl transition-all cursor-pointer group border-emerald-100"
             onClick={() => setCurrentView('fees')}
           >
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <DollarSign className="h-6 w-6 text-emerald-500 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
+                  {loading ? '...' : `${data?.fees?.collection_rate}%`}
+                </span>
               </div>
-              <CardTitle className="text-lg font-bold">Fee Management</CardTitle>
+              <CardTitle className="text-lg font-bold">Fee Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button size="lg" className="w-full bg-emerald-600 hover:bg-emerald-700">
-                💰 View Fees
+              <div className="mb-4">
+                <p className="text-2xl font-black text-gray-900">
+                  {loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : `₹${(data?.fees?.collected / 100000).toFixed(2)}L`}
+                </p>
+                <p className="text-xs text-muted-foreground">Collected so far</p>
+              </div>
+              <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700">
+                💰 Details
               </Button>
             </CardContent>
           </Card>
 
           {/* 2. Fee Entry */}
           <Card
-            className="hover:shadow-xl transition-all cursor-pointer group"
+            className="hover:shadow-xl transition-all cursor-pointer group border-green-100"
             onClick={() => setShowFeeEntry(true)}
           >
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <Receipt className="h-6 w-6 text-green-500 group-hover:scale-110 transition-transform" />
               </div>
-              <CardTitle className="text-lg font-bold">Fee Entry</CardTitle>
+              <CardTitle className="text-lg font-bold">New Payment</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button size="lg" className="w-full bg-green-600 hover:bg-green-700">
-                💳 Parent Payment
+              <div className="mb-4">
+                <p className="text-2xl font-black text-gray-900">
+                  {loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : `₹${data?.fees?.today_collected.toLocaleString()}`}
+                </p>
+                <p className="text-xs text-muted-foreground">Today's collection</p>
+              </div>
+              <Button size="sm" className="w-full bg-green-600 hover:bg-green-700">
+                💳 Collect Fee
               </Button>
             </CardContent>
           </Card>
 
           {/* 3. Students */}
           <Card
-            className="hover:shadow-xl transition-all cursor-pointer group"
+            className="hover:shadow-xl transition-all cursor-pointer group border-blue-100"
             onClick={() => setCurrentView('students')}
           >
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <Users className="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  {loading ? '...' : data?.students?.total_count}
+                </span>
               </div>
               <CardTitle className="text-lg font-bold">Students</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button size="lg" className="w-full bg-blue-600 hover:bg-blue-700">
-                👥 View Students
+              <div className="mb-4">
+                <p className="text-2xl font-black text-gray-900">
+                  {loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : `${data?.students?.attendance_rate}%`}
+                </p>
+                <p className="text-xs text-muted-foreground">Today's attendance</p>
+              </div>
+              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                👥 Manage
               </Button>
             </CardContent>
           </Card>
 
           {/* 4. Academics */}
-          <Card className="hover:shadow-xl transition-all">
-            <CardHeader className="pb-4">
+          <Card className="hover:shadow-xl transition-all border-purple-100">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <BookOpen className="h-6 w-6 text-purple-500" />
               </div>
@@ -157,17 +181,17 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
             </CardHeader>
             <CardContent>
               <div className="text-center py-2">
-                <p className="text-3xl font-black text-gray-900">
-                  {loading ? <Loader2 className="animate-spin inline" /> : `${data?.academics?.pass_rate}%`}
+                <p className="text-3xl font-black text-purple-600">
+                  {loading ? <Loader2 className="animate-spin h-6 w-6 inline" /> : `${data?.academics?.pass_rate}%`}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">Pass Rate</p>
+                <p className="text-xs text-muted-foreground mt-1">Overall Pass Rate</p>
               </div>
             </CardContent>
           </Card>
 
           {/* 5. Classes */}
-          <Card className="hover:shadow-xl transition-all">
-            <CardHeader className="pb-4">
+          <Card className="hover:shadow-xl transition-all border-orange-100">
+            <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <GraduationCap className="h-6 w-6 text-orange-500" />
               </div>
@@ -175,8 +199,8 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
             </CardHeader>
             <CardContent>
               <div className="text-center py-2">
-                <p className="text-3xl font-black text-gray-900">
-                  {loading ? <Loader2 className="animate-spin inline" /> : data?.students?.total_classes}
+                <p className="text-3xl font-black text-orange-600">
+                  {loading ? <Loader2 className="animate-spin h-6 w-6 inline" /> : data?.students?.total_classes}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Active Classes</p>
               </div>
