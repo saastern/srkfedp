@@ -212,6 +212,8 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(markData),
     });
+  }
+
   static getStaffList() {
     return ApiService.request('/api/teachers/list/');
   }
