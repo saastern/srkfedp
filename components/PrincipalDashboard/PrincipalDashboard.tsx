@@ -7,6 +7,7 @@ import { DollarSign, Users, BookOpen, GraduationCap, Receipt, Loader2 } from 'lu
 import FeeEntryModal from './FeeEntryModal'
 import StudentManagementDashboard from './StudentManagementDashboard'
 import FeeDashboard from './FeeDashboard'
+import StaffManagementDashboard from './StaffManagementDashboard'
 import ApiService from '@/services/api'
 
 interface PrincipalDashboardProps {
@@ -15,7 +16,7 @@ interface PrincipalDashboardProps {
 }
 
 export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashboardProps) {
-  const [currentView, setCurrentView] = useState('main') // 'main' | 'fees' | 'students'
+  const [activeTab, setActiveTab] = useState('overview') // overview | fees | students | staff | academics
   const [showFeeEntry, setShowFeeEntry] = useState(false)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>(null)
@@ -35,265 +36,182 @@ export default function PrincipalDashboard({ teacher, onLogout }: PrincipalDashb
       }
     }
 
-    if (currentView === 'main') {
-      fetchStats()
-    }
-  }, [currentView])
+    fetchStats()
+  }, [])
 
-  // If viewing Fee Dashboard
-  if (currentView === 'fees') {
-    return (
-      <FeeDashboard
-        teacher={teacher}
-        onBack={() => setCurrentView('main')}
-        onLogout={onLogout}
-      />
-    )
-  }
+  if (loading) return <div className="p-8 text-center text-gray-500 font-mono">LOADING ERP SYSTEM...</div>
 
-  // If viewing Students
-  if (currentView === 'students') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-4xl font-black bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                👑 Principal Dashboard
-              </h1>
-            </div>
-            <Button onClick={onLogout} variant="destructive">
-              Logout
-            </Button>
-          </div>
-          <StudentManagementDashboard onClose={() => setCurrentView('main')} />
-        </div>
-      </div>
-    )
-  }
-
-  // Main Dashboard View
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-12">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-800">
+      {/* Top ERP Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="bg-blue-600 text-white p-2 rounded font-black text-xl">ERP</div>
           <div>
-            <h1 className="text-5xl font-black bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-              👑 Principal Dashboard
-            </h1>
-            <p className="text-xl text-gray-600 mt-3">
-              Welcome back, {teacher.full_name}
-            </p>
+            <h1 className="text-xl font-bold tracking-tight">Sri Ravi Kiran School - Principal Console</h1>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Academic Year 2025-26 | System Administrator: {teacher.full_name}</p>
           </div>
-          <Button onClick={onLogout} variant="destructive">
-            Logout
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={() => setShowFeeEntry(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-none font-bold py-1 px-4 h-9 shadow-sm"
+          >
+            + DIRECT FEE ENTRY
+          </Button>
+          <Button onClick={onLogout} variant="outline" className="rounded-none border-gray-300 h-9 font-bold">
+            LOGOUT
           </Button>
         </div>
+      </header>
 
-        {/* Main Actions Grid - 5 Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
-          {/* 1. Fee Management */}
-          <Card
-            className="hover:shadow-xl transition-all cursor-pointer group border-emerald-100"
-            onClick={() => setCurrentView('fees')}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <DollarSign className="h-6 w-6 text-emerald-500 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
-                  {loading ? '...' : `${data?.fees?.collection_rate}%`}
-                </span>
-              </div>
-              <CardTitle className="text-lg font-bold">Fee Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <p className="text-2xl font-black text-gray-900">
-                  {loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : `₹${(data?.fees?.collected / 100000).toFixed(2)}L`}
-                </p>
-                <p className="text-xs text-muted-foreground">Collected so far</p>
-              </div>
-              <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700">
-                💰 Details
-              </Button>
-            </CardContent>
-          </Card>
+      {/* Main Container */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar Navigation */}
+        <aside className="w-64 bg-gray-900 text-gray-300 flex flex-col">
+          <nav className="flex-1 py-4">
+            {[
+              { id: 'overview', label: 'DASHBOARD HOME', icon: <GraduationCap className="h-4 w-4" /> },
+              { id: 'fees', label: 'FEE COLLECTIONS', icon: <DollarSign className="h-4 w-4" /> },
+              { id: 'students', label: 'STUDENT RECORDS', icon: <Users className="h-4 w-4" /> },
+              { id: 'staff', label: 'STAFF MANAGEMENT', icon: <Users className="h-4 w-4" /> },
+              { id: 'academics', label: 'EXAMS & RESULTS', icon: <BookOpen className="h-4 w-4" /> },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-6 py-3 text-sm font-bold border-l-4 transition-colors ${activeTab === item.id
+                  ? 'bg-gray-800 border-blue-500 text-white'
+                  : 'border-transparent hover:bg-gray-800 hover:text-white'
+                  }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </nav>
+          <div className="p-4 bg-gray-950 text-[10px] text-gray-500 border-t border-gray-800">
+            SYSTEM STATUS: ONLINE <br />
+            LAST SYNC: {new Date().toLocaleTimeString()}
+          </div>
+        </aside>
 
-          {/* 2. Fee Entry */}
-          <Card
-            className="hover:shadow-xl transition-all cursor-pointer group border-green-100"
-            onClick={() => setShowFeeEntry(true)}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <Receipt className="h-6 w-6 text-green-500 group-hover:scale-110 transition-transform" />
-              </div>
-              <CardTitle className="text-lg font-bold">New Payment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <p className="text-2xl font-black text-gray-900">
-                  {loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : `₹${data?.fees?.today_collected.toLocaleString()}`}
-                </p>
-                <p className="text-xs text-muted-foreground">Today's collection</p>
-              </div>
-              <Button size="sm" className="w-full bg-green-600 hover:bg-green-700">
-                💳 Collect Fee
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* 3. Students */}
-          <Card
-            className="hover:shadow-xl transition-all cursor-pointer group border-blue-100"
-            onClick={() => setCurrentView('students')}
-          >
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <Users className="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                  {loading ? '...' : data?.students?.total_count}
-                </span>
-              </div>
-              <CardTitle className="text-lg font-bold">Students</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <p className="text-2xl font-black text-gray-900">
-                  {loading ? <Loader2 className="animate-spin h-5 w-5 inline" /> : `${data?.students?.attendance_rate}%`}
-                </p>
-                <p className="text-xs text-muted-foreground">Today's attendance</p>
-              </div>
-              <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
-                👥 Manage
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* 4. Academics */}
-          <Card className="hover:shadow-xl transition-all border-purple-100">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <BookOpen className="h-6 w-6 text-purple-500" />
-              </div>
-              <CardTitle className="text-lg font-bold">Academics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-2">
-                <p className="text-3xl font-black text-purple-600">
-                  {loading ? <Loader2 className="animate-spin h-6 w-6 inline" /> : `${data?.academics?.pass_rate}%`}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Overall Pass Rate</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 5. Classes */}
-          <Card className="hover:shadow-xl transition-all border-orange-100">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <GraduationCap className="h-6 w-6 text-orange-500" />
-              </div>
-              <CardTitle className="text-lg font-bold">Classes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-2">
-                <p className="text-3xl font-black text-orange-600">
-                  {loading ? <Loader2 className="animate-spin h-6 w-6 inline" /> : data?.students?.total_classes}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">Active Classes</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>📊 Today's Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Students Present</span>
-                  <span className="font-bold">
-                    {loading ? '...' : `${data?.students?.present_today}/${data?.students?.strength_today}`}
-                  </span>
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {activeTab === 'overview' && (
+            <div className="space-y-6">
+              {/* Stat Cards - High Density */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white border border-gray-200 p-4 shadow-sm">
+                  <div className="text-[10px] font-black text-gray-400 uppercase mb-1">Total Student Strength</div>
+                  <div className="text-3xl font-bold text-blue-700">{data?.students?.total_count}</div>
+                  <div className="text-[10px] text-green-600 font-bold mt-1">ACTIVE ENROLLMENT</div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Fee Collections</span>
-                  <span className="font-bold text-green-600">
-                    {loading ? '...' : `₹${data?.fees?.today_collected.toLocaleString()}`}
-                  </span>
+                <div className="bg-white border border-gray-200 p-4 shadow-sm">
+                  <div className="text-[10px] font-black text-gray-400 uppercase mb-1">Today's Attendance</div>
+                  <div className="text-3xl font-bold text-emerald-700">{data?.students?.attendance_rate}%</div>
+                  <div className="text-[10px] text-gray-500 font-bold mt-1">{data?.students?.present_today} / {data?.students?.strength_today} PRESENT</div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Attendance Rate</span>
-                  <span className="font-bold">
-                    {loading ? '...' : `${data?.students?.attendance_rate}%`}
-                  </span>
+                <div className="bg-white border border-gray-200 p-4 shadow-sm">
+                  <div className="text-[10px] font-black text-gray-400 uppercase mb-1">Month Collection</div>
+                  <div className="text-3xl font-bold text-orange-700">₹{(data?.fees?.mtd_collected / 1000).toFixed(0)}K</div>
+                  <div className="text-[10px] text-gray-500 font-bold mt-1">MTD REVENUE</div>
+                </div>
+                <div className="bg-white border border-gray-200 p-4 shadow-sm">
+                  <div className="text-[10px] font-black text-gray-400 uppercase mb-1">Total Teachers</div>
+                  <div className="text-3xl font-bold text-purple-700">{data?.students?.total_teachers}</div>
+                  <div className="text-[10px] text-gray-500 font-bold mt-1">ACTIVE FACULTY</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>🎯 This Month</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Overall Attendance</span>
-                  <span className="font-bold text-green-600">
-                    {loading ? '...' : `${data?.students?.attendance_rate}%`}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Fee Collection (MTD)</span>
-                  <span className="font-bold text-emerald-600">
-                    {loading ? '...' : `₹${(data?.fees?.mtd_collected / 100000).toFixed(2)}L`}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Pending Fees</span>
-                  <span className="font-bold text-orange-600">
-                    {loading ? '...' : `₹${(data?.fees?.pending / 1000).toFixed(0)}K`}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Functional Panels */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <section className="bg-white border border-gray-200 shadow-sm">
+                  <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-sm">TODAY'S FEE COLLECTIONS</div>
+                  <div className="p-4">
+                    <div className="text-4xl font-black text-gray-900 mb-2">₹{data?.fees?.today_collected.toLocaleString()}</div>
+                    <p className="text-xs text-gray-500 mb-4">Total amount collected across all payment modes today.</p>
+                    <Button
+                      className="w-full bg-gray-900 hover:bg-black text-white rounded-none font-bold"
+                      onClick={() => setShowFeeEntry(true)}
+                    >
+                      COLLECT NEW PAYMENT
+                    </Button>
+                  </div>
+                </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>⚡ Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  📝 Mark Attendance
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  📢 Send Announcement
-                </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
-                  📄 Generate Report
-                </Button>
+                <section className="bg-white border border-gray-200 shadow-sm">
+                  <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-sm">ACADEMIC SUMMARY</div>
+                  <div className="p-4 space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-sm font-medium">Overall Pass Percentage</span>
+                      <span className="text-sm font-bold text-blue-600">{data?.academics?.pass_rate}%</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                      <span className="text-sm font-medium">Classes Configured</span>
+                      <span className="text-sm font-bold">{data?.students?.total_classes}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm font-medium">Fee Collection Rate</span>
+                      <span className="text-sm font-bold text-emerald-600">{data?.fees?.collection_rate}%</span>
+                    </div>
+                  </div>
+                </section>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+
+              {/* Recent Activity Table - ERP Style */}
+              <section className="bg-white border border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-sm">QUICK SYSTEM CHECKS</div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-gray-50 uppercase font-black text-gray-400 border-b border-gray-200">
+                      <tr>
+                        <th className="px-4 py-3">Module</th>
+                        <th className="px-4 py-3">Key Metric</th>
+                        <th className="px-4 py-3">Value</th>
+                        <th className="px-4 py-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      <tr>
+                        <td className="px-4 py-3 font-bold">FEES</td>
+                        <td className="px-4 py-3">Total Pending</td>
+                        <td className="px-4 py-3">₹{(data?.fees?.pending / 1000).toFixed(0)}K</td>
+                        <td className="px-4 py-3"><span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold">ACTION REQ</span></td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-3 font-bold">ATTENDANCE</td>
+                        <td className="px-4 py-3">Today's Present</td>
+                        <td className="px-4 py-3">{data?.students?.present_today}</td>
+                        <td className="px-4 py-3"><span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">MONITORED</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'fees' && <FeeDashboard teacher={teacher} onBack={() => setActiveTab('overview')} onLogout={onLogout} />}
+          {activeTab === 'students' && <StudentManagementDashboard onClose={() => setActiveTab('overview')} />}
+          {activeTab === 'staff' && <StaffManagementDashboard onClose={() => setActiveTab('overview')} />}
+          {activeTab === 'academics' && (
+            <div className="bg-amber-50 border border-amber-200 p-6 text-amber-800 font-bold text-center italic">
+              Detailed {activeTab} module is under construction. <br /> Use the Dashboard Overview for key metrics.
+            </div>
+          )}
+        </main>
       </div>
 
-      {/* Fee Entry Modal */}
+      {/* Simplified Fee Entry Modal */}
       {showFeeEntry && (
         <FeeEntryModal
           onClose={() => setShowFeeEntry(false)}
           onPaymentSuccess={(paymentData) => {
             console.log('Payment saved:', paymentData)
             setShowFeeEntry(false)
+            // Trigger refresh
+            window.location.reload()
           }}
         />
       )}

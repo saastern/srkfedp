@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DollarSign, TrendingUp, AlertCircle, Gift, Users } from 'lucide-react'
+import { DollarSign, TrendingUp, AlertCircle, Gift, Users, ArrowLeft } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import ApiService from '@/services/api'
 
 interface FeeDashboardProps {
   teacher: any
@@ -14,258 +15,166 @@ interface FeeDashboardProps {
   onLogout: () => void
 }
 
-// Monthly collection data
-const MONTHLY_DATA = [
-  { month: 'Jul', collected: 185000, expected: 220000 },
-  { month: 'Aug', collected: 195000, expected: 225000 },
-  { month: 'Sep', collected: 210000, expected: 230000 },
-  { month: 'Oct', collected: 198000, expected: 235000 },
-  { month: 'Nov', collected: 205000, expected: 240000 },
-  { month: 'Dec', collected: 215000, expected: 245000 },
-  { month: 'Jan', collected: 198000, expected: 245000 },
-]
-
 export default function FeeDashboard({ teacher, onBack, onLogout }: FeeDashboardProps) {
-  const [data, setData] = useState(null)
+  const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  // Mock data for now (replace with API later)
   useEffect(() => {
-    setTimeout(() => {
-      setData({
-        kpis: {
-          total_expected: 245000,
-          collected: 198000,
-          pending: 47000,
-          concessions: 12500,
-          defaulters_count: 23,
-          collection_rate: 80.8
-        }
-      })
-      setLoading(false)
-    }, 1000)
+    const fetchFeeData = async () => {
+      try {
+        setLoading(true)
+        const response = await ApiService.request('/api/fees/dashboard/')
+        setData(response)
+      } catch (error) {
+        console.error('Error fetching fee dashboard:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchFeeData()
   }, [])
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between">
-          <Skeleton className="h-12 w-64" />
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-10 w-48" />
           <Skeleton className="h-10 w-24" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {Array(5).fill(0).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full" />
+            <Skeleton key={i} className="h-24 w-full" />
           ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-80 w-full" />
+          <Skeleton className="h-80 w-full" />
         </div>
       </div>
     )
   }
 
+  const kpis = data?.kpis || {}
+  const chartData = data?.charts?.monthly_collections || []
+  const transactions = data?.recent_transactions || []
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Button variant="outline" onClick={onBack} className="mb-4">
-            ← Back to Dashboard
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* ERP Header Strip */}
+      <div className="flex items-center justify-between border-b pb-4 border-gray-200">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={onBack} className="hover:bg-gray-100 rounded-none border border-gray-300">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            BACK
           </Button>
-          <h1 className="text-3xl font-bold">💰 Fee Dashboard</h1>
-          <p className="text-muted-foreground">Real-time fee collection overview</p>
+          <div>
+            <h1 className="text-xl font-black uppercase tracking-tighter">Fee Ledger & Revenue Terminal</h1>
+            <p className="text-[10px] text-gray-500 font-bold uppercase">System Console / Financials / Overview</p>
+          </div>
         </div>
-        <Button onClick={onLogout}>Logout</Button>
+        <Button onClick={onLogout} variant="destructive" size="sm" className="rounded-none font-bold">LOGOUT</Button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Expected</CardTitle>
-            <DollarSign className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{data?.kpis.total_expected?.toLocaleString()}</div>
-          </CardContent>
-        </Card>
+      {/* High Density KPI Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-white border-l-4 border-l-blue-600 border border-gray-200 p-4 shadow-sm">
+          <div className="text-[10px] font-black text-gray-400 uppercase">Total Expected</div>
+          <div className="text-2xl font-black text-gray-900">₹{kpis.total_expected?.toLocaleString()}</div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Collected</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{data?.kpis.collection_rate}%</div>
-            <p className="text-sm text-muted-foreground">₹{data?.kpis.collected?.toLocaleString()}</p>
-          </CardContent>
-        </Card>
+        <div className="bg-white border-l-4 border-l-emerald-600 border border-gray-200 p-4 shadow-sm">
+          <div className="text-[10px] font-black text-gray-400 uppercase">Collection Rate</div>
+          <div className="text-2xl font-black text-emerald-600">{kpis.collection_rate}%</div>
+          <div className="text-[10px] font-bold text-gray-500">₹{kpis.collected?.toLocaleString()} COLLECTED</div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <AlertCircle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">₹{data?.kpis.pending?.toLocaleString()}</div>
-          </CardContent>
-        </Card>
+        <div className="bg-white border-l-4 border-l-orange-600 border border-gray-200 p-4 shadow-sm">
+          <div className="text-[10px] font-black text-gray-400 uppercase">Total Pending</div>
+          <div className="text-2xl font-black text-orange-600">₹{kpis.pending?.toLocaleString()}</div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Concessions</CardTitle>
-            <Gift className="h-4 w-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">₹{data?.kpis.concessions?.toLocaleString()}</div>
-          </CardContent>
-        </Card>
+        <div className="bg-white border-l-4 border-l-purple-600 border border-gray-200 p-4 shadow-sm">
+          <div className="text-[10px] font-black text-gray-400 uppercase">Total Concessions</div>
+          <div className="text-2xl font-black text-purple-600">₹{kpis.concessions?.toLocaleString()}</div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Defaulters</CardTitle>
-            <Users className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{data?.kpis.defaulters_count}</div>
-          </CardContent>
-        </Card>
+        <div className="bg-white border-l-4 border-l-red-600 border border-gray-200 p-4 shadow-sm">
+          <div className="text-[10px] font-black text-gray-400 uppercase">Active Defaulters</div>
+          <div className="text-2xl font-black text-red-600">{kpis.defaulters_count}</div>
+          <div className="text-[10px] font-bold text-gray-500 uppercase">Follow-up Required</div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Collections Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>📈 Monthly Collections</CardTitle>
-            <p className="text-sm text-muted-foreground">Collected vs Expected (Jul - Jan)</p>
-          </CardHeader>
-          <CardContent>
+        {/* Revenue Chart */}
+        <section className="bg-white border border-gray-200 shadow-sm">
+          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-sm">MONTHLY REVENUE TREND (LAST 6 MONTHS)</div>
+          <div className="p-4">
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={MONTHLY_DATA}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis 
-                  dataKey="month" 
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                  tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`}
-                />
-                <Tooltip 
-                  formatter={(value) => `₹${value.toLocaleString()}`}
-                  contentStyle={{ 
-                    backgroundColor: '#fff',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                  }}
-                />
-                <Legend 
-                  wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                />
-                <Bar 
-                  dataKey="collected" 
-                  fill="#10b981" 
-                  name="Collected"
-                  radius={[8, 8, 0, 0]}
-                />
-                <Bar 
-                  dataKey="expected" 
-                  fill="#6366f1" 
-                  name="Expected"
-                  radius={[8, 8, 0, 0]}
-                />
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} className="text-[10px] font-bold" />
+                <YAxis axisLine={false} tickLine={false} className="text-[10px] font-bold" tickFormatter={(v) => `₹${v / 1000}K`} />
+                <Tooltip cursor={{ fill: '#f9fafb' }} contentStyle={{ borderRadius: '0px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Bar dataKey="amount" fill="#2563eb" radius={[2, 2, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        
-        {/* Recent Transactions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>💳 Recent Transactions</CardTitle>
-            <p className="text-sm text-muted-foreground">Latest fee payments</p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              { student: 'Ravi Kumar', roll: 'CT-101', amount: 5000, date: '2026-01-20', method: 'Cash' },
-              { student: 'Priya Sharma', roll: 'CT-102', amount: 4500, date: '2026-01-19', method: 'UPI' },
-              { student: 'Amit Patel', roll: 'CT-201', amount: 7500, date: '2026-01-18', method: 'Bank Transfer' },
-              { student: 'Sneha Gupta', roll: 'CT-202', amount: 3750, date: '2026-01-17', method: 'Cash' },
-              { student: 'Rahul Singh', roll: 'CT-301', amount: 10000, date: '2026-01-16', method: 'UPI' }
-            ].map((tx, i) => (
-              <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex-1">
-                  <div className="font-semibold">{tx.student}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    <span>{tx.roll}</span>
-                    <span>•</span>
-                    <Badge variant="outline" className="text-xs">
-                      {tx.method}
-                    </Badge>
+          </div>
+        </section>
+
+        {/* Recent Activity Log */}
+        <section className="bg-white border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-sm">RECENT COLLECTIONS LOG</div>
+          <div className="divide-y divide-gray-100 overflow-y-auto max-h-[300px]">
+            {transactions.map((tx: any, i: number) => (
+              <div key={i} className="flex justify-between items-center p-3 hover:bg-gray-50 transition-colors">
+                <div>
+                  <div className="text-xs font-black text-gray-900 uppercase">{tx.student}</div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[9px] font-bold text-gray-500 uppercase">RECEIPT: {tx.receipt}</span>
+                    <span className="bg-gray-200 text-gray-700 text-[8px] font-black px-1.5 py-0.5 rounded">AUTO-LOGGED</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-green-600">₹{tx.amount.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500">{new Date(tx.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</div>
+                  <div className="text-sm font-black text-emerald-600">₹{tx.amount.toLocaleString()}</div>
+                  <div className="text-[9px] font-bold text-gray-400 uppercase">{tx.date}</div>
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+            {transactions.length === 0 && (
+              <div className="p-8 text-center text-gray-400 text-xs font-bold uppercase italic">No recent transactions located in ledger.</div>
+            )}
+          </div>
+        </section>
       </div>
 
-      {/* Collection Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>📊 Collection Trend</CardTitle>
-          <p className="text-sm text-muted-foreground">Monthly collection rate over time</p>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={MONTHLY_DATA}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fontSize: 12 }}
-                stroke="#888"
-              />
-              <YAxis 
-                tick={{ fontSize: 12 }}
-                stroke="#888"
-                domain={[70, 100]}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <Tooltip 
-                formatter={(value, name) => {
-                  if (name === 'Collection Rate') {
-                    return [`${value.toFixed(1)}%`, name]
-                  }
-                  return [value, name]
-                }}
-                contentStyle={{ 
-                  backgroundColor: '#fff',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }}
-              />
-              <Legend   
-                wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey={(data) => ((data.collected / data.expected) * 100).toFixed(1)}
-                name="Collection Rate"
-                stroke="#10b981" 
+      {/* Collection Efficiency Terminal */}
+      <section className="bg-white border border-gray-200 shadow-sm">
+        <div className="bg-gray-100 px-4 py-2 border-b border-gray-200 font-bold text-sm">COLLECTION EFFICIENCY INDEX</div>
+        <div className="p-4">
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+              <XAxis dataKey="month" axisLine={false} tickLine={false} className="text-[10px] font-bold" />
+              <YAxis axisLine={false} tickLine={false} domain={[0, 100]} className="text-[10px] font-bold" tickFormatter={(v) => `${v}%`} />
+              <Tooltip contentStyle={{ borderRadius: '0px', border: '1px solid #e5e7eb' }} />
+              <Line
+                type="stepAfter"
+                dataKey="amount"
+                stroke="#059669"
                 strokeWidth={3}
-                dot={{ fill: '#10b981', r: 5 }}
-                activeDot={{ r: 7 }}
+                dot={{ fill: '#059669', r: 4 }}
+                activeDot={{ r: 6 }}
               />
             </LineChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-100">
+            <p className="text-[10px] font-bold text-blue-800 uppercase leading-relaxed">
+              ANALYSIS: Current collection rate is {kpis.collection_rate}%. Automated follow-ups recommended for {kpis.defaulters_count} outstanding student accounts.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

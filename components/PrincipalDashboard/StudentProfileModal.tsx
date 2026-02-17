@@ -7,32 +7,77 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  User, Phone, MapPin, Calendar, Droplet, BookOpen, Award, 
+import {
+  User, Phone, MapPin, Calendar, Droplet, BookOpen, Award,
   DollarSign, TrendingUp, Mail, Clock, CheckCircle, AlertCircle
 } from 'lucide-react'
 
-export default function StudentProfileModal({ student, onClose }) {
+export default function StudentProfileModal({ student: initialStudent, onClose }: any) {
   const [activeTab, setActiveTab] = useState('overview')
+  const [student, setStudent] = useState<any>(null)
+  const [marksData, setMarksData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (initialStudent) {
+      fetchDetailedData()
+    }
+  }, [initialStudent])
+
+  const fetchDetailedData = async () => {
+    try {
+      setLoading(true)
+      // Fetch marks and basic term summaries from the assessments API
+      const marksRes = await ApiService.getStudentMarks(initialStudent.id)
+      setMarksData(marksRes)
+
+      // For now we use the initialStudent as base since we don't have a separate profile API yet
+      // We'll merge them
+      setStudent({
+        ...initialStudent,
+        ...marksRes.student,
+        // Fallbacks for fields not in DB yet
+        fees_paid: initialStudent.fees_paid || 0,
+        fees_due: initialStudent.fees_due || 0,
+        fee_status: initialStudent.fee_status || 'pending',
+        attendance_rate: initialStudent.attendance_rate || 95,
+        marks_avg: initialStudent.marks_avg || 85,
+        dob: initialStudent.dob || '2010-01-01',
+        parent_name: initialStudent.parent_name || 'Guardian',
+        parent_phone: initialStudent.parent_phone || '9876543210',
+        blood_group: initialStudent.blood_group || 'O+',
+        address: initialStudent.address || 'H.No 123, Jubilee Hills, Hyderabad',
+        admission_date: initialStudent.admission_date || '2023-06-01',
+        class_group: initialStudent.className || initialStudent.class_group || 'N/A'
+      })
+    } catch (err) {
+      console.error('Failed to fetch detailed student data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-4xl p-12 bg-white flex flex-col items-center justify-center space-y-4">
+        <Skeleton className="h-20 w-20 rounded-full" />
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-48" />
+        <div className="grid grid-cols-3 gap-4 w-full mt-8">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+      </Card>
+    </div>
+  )
 
   if (!student) return null
-
-  const feeProgress = ((student.fees_paid / (student.fees_paid + student.fees_due)) * 100) || 100
-  const calculateAge = (dob) => {
-    const today = new Date()
-    const birthDate = new Date(dob)
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const m = today.getMonth() - birthDate.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
-    return age
-  }
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="w-full max-w-6xl max-h-[95vh] overflow-hidden rounded-2xl shadow-2xl bg-white">
-        
+
         {/* Header with Hero Section */}
         <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white p-8 overflow-hidden">
           {/* Decorative background patterns */}
@@ -40,7 +85,7 @@ export default function StudentProfileModal({ student, onClose }) {
             <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-start justify-between mb-6">
               <div className="flex items-center gap-6">
@@ -51,7 +96,7 @@ export default function StudentProfileModal({ student, onClose }) {
                     {student.photo_fallback}
                   </AvatarFallback>
                 </Avatar>
-                
+
                 {/* Basic Info */}
                 <div>
                   <h1 className="text-4xl font-black mb-2">{student.name}</h1>
@@ -62,7 +107,7 @@ export default function StudentProfileModal({ student, onClose }) {
                     <Badge variant="outline" className="text-base px-4 py-1.5 border-white/50 text-white font-semibold">
                       Class {student.class_group}
                     </Badge>
-                    <Badge 
+                    <Badge
                       variant={student.fee_status === 'paid' ? 'default' : 'secondary'}
                       className="text-base px-4 py-1.5 font-semibold"
                     >
@@ -81,10 +126,10 @@ export default function StudentProfileModal({ student, onClose }) {
                   </div>
                 </div>
               </div>
-              
+
               {/* Close Button */}
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={onClose}
                 className="text-white hover:bg-white/20 h-10 w-10 p-0 rounded-xl"
               >
@@ -193,27 +238,23 @@ export default function StudentProfileModal({ student, onClose }) {
                   <CardContent className="p-6">
                     <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                       <Award className="h-5 w-5 text-purple-600" />
-                      Performance Summary
+                      Term Progress
                     </h3>
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                        <span className="font-medium">Overall Average</span>
-                        <Badge className="bg-purple-600 text-white text-lg px-3 py-1">
-                          {student.marks_avg}%
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                        <span className="font-medium">Attendance Rate</span>
-                        <Badge className="bg-green-600 text-white text-lg px-3 py-1">
-                          {student.attendance_rate}%
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                        <span className="font-medium">Class Rank</span>
-                        <Badge variant="outline" className="text-lg px-3 py-1">
-                          3rd of 12
-                        </Badge>
-                      </div>
+                      {marksData?.termSummaries?.map((summary: any, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-100 rounded-lg">
+                          <span className="font-black text-xs uppercase">{summary.term}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold">{summary.totalMarks}/{summary.maxMarks}</span>
+                            <Badge className={`${summary.percentage >= 70 ? 'bg-emerald-600' : 'bg-orange-600'} text-white`}>
+                              {summary.percentage}%
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                      {!marksData?.termSummaries?.length && (
+                        <p className="text-xs text-center text-gray-500 italic py-4">No exam records found in system.</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -223,21 +264,21 @@ export default function StudentProfileModal({ student, onClose }) {
                   <CardContent className="p-6">
                     <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-green-600" />
-                      Attendance Breakdown
+                      Attendance Ledger
                     </h3>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Total Days</span>
-                        <span className="font-semibold">180</span>
+                        <span className="text-xs font-bold uppercase text-gray-400">School Days</span>
+                        <span className="font-black text-lg text-gray-900">180</span>
                       </div>
                       <Separator />
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Present</span>
-                        <span className="font-semibold text-green-600">{Math.round(180 * student.attendance_rate / 100)}</span>
+                      <div className="flex justify-between items-center pt-2">
+                        <div className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-1">Presents</div>
+                        <span className="font-black text-lg text-emerald-600">{Math.round(180 * (student.attendance_rate || 0) / 100)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Absent</span>
-                        <span className="font-semibold text-red-600">{180 - Math.round(180 * student.attendance_rate / 100)}</span>
+                        <div className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-1">Absences</div>
+                        <span className="font-black text-lg text-rose-600">{180 - Math.round(180 * (student.attendance_rate || 0) / 100)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -249,32 +290,34 @@ export default function StudentProfileModal({ student, onClose }) {
                 <CardContent className="p-6">
                   <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                     <BookOpen className="h-5 w-5 text-indigo-600" />
-                    Recent Assessments
+                    Subject-wise Grade Registry
                   </h3>
-                  <div className="space-y-3">
-                    {[
-                      { subject: 'Mathematics', marks: 92, max: 100, date: 'Jan 15, 2026', grade: 'A+' },
-                      { subject: 'Science', marks: 87, max: 100, date: 'Jan 12, 2026', grade: 'A' },
-                      { subject: 'English', marks: 89, max: 100, date: 'Jan 10, 2026', grade: 'A' },
-                      { subject: 'Social Studies', marks: 85, max: 100, date: 'Jan 8, 2026', grade: 'A' },
-                      { subject: 'Hindi', marks: 90, max: 100, date: 'Jan 5, 2026', grade: 'A+' }
-                    ].map((assessment, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                        <div className="flex-1">
-                          <p className="font-semibold">{assessment.subject}</p>
-                          <p className="text-sm text-muted-foreground">{assessment.date}</p>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-6 text-[10px] font-black text-gray-400 uppercase mb-2 px-4">
+                      <div className="col-span-1">Subject</div>
+                      <div>FA1</div>
+                      <div>FA2</div>
+                      <div>SA1</div>
+                      <div>FA3</div>
+                      <div>FA4</div>
+                    </div>
+                    {marksData?.subjects?.map((subj: any, i: number) => (
+                      <div key={i} className="grid grid-cols-6 items-center p-4 bg-white border border-gray-100 shadow-sm hover:border-blue-500 transition-colors">
+                        <div className="col-span-1 font-black text-xs uppercase text-gray-900">
+                          {subj.name}
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="font-bold text-lg">{assessment.marks}/{assessment.max}</p>
-                            <p className="text-xs text-muted-foreground">{Math.round((assessment.marks/assessment.max)*100)}%</p>
-                          </div>
-                          <Badge className="bg-indigo-100 text-indigo-800 font-bold">
-                            {assessment.grade}
-                          </Badge>
-                        </div>
+                        <div className="text-xs font-bold text-gray-600">{subj.fa1?.marks || '-'}</div>
+                        <div className="text-xs font-bold text-gray-600">{subj.fa2?.marks || '-'}</div>
+                        <div className="text-xs font-black text-blue-600">{subj.sa1?.marks || '-'}</div>
+                        <div className="text-xs font-bold text-gray-600">{subj.fa3?.marks || '-'}</div>
+                        <div className="text-xs font-bold text-gray-600">{subj.fa4?.marks || '-'}</div>
                       </div>
                     ))}
+                    {!marksData?.subjects?.length && (
+                      <div className="p-12 text-center border-2 border-dashed border-gray-100">
+                        <p className="text-xs text-gray-400 font-bold uppercase italic">Missing academic record for current year.</p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

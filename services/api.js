@@ -3,7 +3,7 @@
 //  Central API helper for your Django backend
 //-----------------------------------------------
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://srkdp-production.up.railway.app" || "http://127.0.0.1:8000" ;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://srkdp-production.up.railway.app" || "http://127.0.0.1:8000";
 
 class ApiService {
   /*-----------------------------------------------------------*
@@ -15,7 +15,7 @@ class ApiService {
    |  Generic request helper  (includes detailed debug logs)   |
    *-----------------------------------------------------------*/
   static async request(endpoint, options = {}) {
-    const url   = `${ApiService.baseURL}${endpoint}`;
+    const url = `${ApiService.baseURL}${endpoint}`;
     const token = localStorage.getItem('access_token');
 
     /* ---------- DEBUG: token + header state ----------------- */
@@ -41,7 +41,7 @@ class ApiService {
     console.log('📤 Full fetch config →', config);
 
     try {
-      const res  = await fetch(url, config);
+      const res = await fetch(url, config);
       const data = await res.json();
 
       console.log('► API', res.status, url, data);
@@ -91,6 +91,10 @@ class ApiService {
     return ApiService.request('/api/dashboard/api/principal/summary/');
   }
 
+  static getFeeDashboard() {
+    return ApiService.request('/api/fees/dashboard/');
+  }
+
   /*-----------------------------------------------------------*
    |  Attendance - UPDATED WITH NEW METHODS                   |
    *-----------------------------------------------------------*/
@@ -117,8 +121,22 @@ class ApiService {
   }
 
   /*-----------------------------------------------------------*
+   |  Fee management                                           |
+   *-----------------------------------------------------------*/
+  static recordPayment(paymentData) {
+    return ApiService.request('/api/fees/record-payment/', {
+      method: 'POST',
+      body: JSON.stringify(paymentData),
+    });
+  }
+
+  /*-----------------------------------------------------------*
    |  Student management                                       |
    *-----------------------------------------------------------*/
+  static searchStudents(query) {
+    return ApiService.request(`/api/students/search/?q=${query}`);
+  }
+
   static async addStudent(studentData) {
     return ApiService.request('/api/students/add/', {
       method: 'POST',
@@ -142,7 +160,7 @@ class ApiService {
   /*-----------------------------------------------------------*
    |  ✅ MARKS MANAGEMENT - NEW SECTION                       |
    *-----------------------------------------------------------*/
-  
+
   // Get all classes for marks management
   static getMarksClasses() {
     return ApiService.request('/api/assessments/classes/');
@@ -171,7 +189,7 @@ class ApiService {
   /*-----------------------------------------------------------*
    |  ✅ MARKS ENTRY - FOR FUTURE (when you add marks entry) |
    *-----------------------------------------------------------*/
-  
+
   // Save individual mark
   static saveStudentMark(markData) {
     return ApiService.request('/api/assessments/marks/', {
@@ -194,6 +212,8 @@ class ApiService {
       method: 'PUT',
       body: JSON.stringify(markData),
     });
+  static getStaffList() {
+    return ApiService.request('/api/teachers/list/');
   }
 }
 
