@@ -152,6 +152,11 @@ class ApiService {
     return ApiService.request(`/api/students/search/?q=${query}`);
   }
 
+  // List students in a class (for the Manage Students page)
+  static getClassStudentsForManage(classId) {
+    return ApiService.request(`/api/students/class/${classId}/`);
+  }
+
   static async addStudent(studentData) {
     return ApiService.request('/api/students/add/', {
       method: 'POST',
@@ -226,6 +231,25 @@ class ApiService {
     return ApiService.request(`/api/assessments/marks/${markId}/`, {
       method: 'PUT',
       body: JSON.stringify(markData),
+    });
+  }
+
+  /*-----------------------------------------------------------*
+   |  ✅ MARKS ENTRY GRID (class x subjects for an exam)      |
+   *-----------------------------------------------------------*/
+
+  // Load the editable grid: students x subjects + existing marks
+  static getClassMarksGrid(classId, examId) {
+    return ApiService.request(
+      `/api/assessments/marks-grid/?class_id=${classId}&exam_id=${examId}`
+    );
+  }
+
+  // Bulk-save the grid: { class_id, exam_id, marks: { [studentId]: { [subjectId]: {marks, is_absent} } } }
+  static saveClassMarksGrid(payload) {
+    return ApiService.request('/api/assessments/marks-grid/save/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   }
 

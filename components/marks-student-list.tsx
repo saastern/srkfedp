@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LoadingSpinner } from "@/components/loading-spinner"
-import { ArrowLeft, User, Search } from "lucide-react"
+import { ArrowLeft, User, Search, ClipboardEdit } from "lucide-react"
 import ApiService from "@/services/api"
 
 interface Student {
@@ -20,10 +20,11 @@ interface MarksStudentListProps {
   onBack: () => void
   onLogout: () => void
   onStudentSelect?: (studentId: string, studentName: string) => void // ✅ Add this prop
+  onEnterMarks?: () => void // ✅ Jump to the class-wide marks entry grid
 }
 
 // ✅ Add onStudentSelect to destructuring
-export function MarksStudentList({ classId, onBack, onLogout, onStudentSelect }: MarksStudentListProps) {
+export function MarksStudentList({ classId, onBack, onLogout, onStudentSelect, onEnterMarks }: MarksStudentListProps) {
   const [students, setStudents] = useState<Student[]>([])
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -91,9 +92,15 @@ export function MarksStudentList({ classId, onBack, onLogout, onStudentSelect }:
               Class {className} - Students
             </h1>
             <p className="text-gray-600 mt-1">
-              Click on a student to view their marks
+              Click a student to view/edit marks, or enter marks for the whole class
             </p>
           </div>
+          {onEnterMarks && (
+            <Button onClick={onEnterMarks} className="bg-blue-600 hover:bg-blue-700 w-fit">
+              <ClipboardEdit className="w-4 h-4 mr-2" />
+              Enter Class Marks
+            </Button>
+          )}
           <Button onClick={onLogout} variant="outline" size="sm">
             Logout
           </Button>

@@ -8,9 +8,19 @@ import AttendancePage from '@/components/attendance-page'
 import { MarksClassDashboard } from '@/components/marks-class-dashboard'
 import { MarksStudentList } from '@/components/marks-student-list'
 import { MarksStudentMarks } from '@/components/marks-student-marks'
+import { MarksEntryGrid } from '@/components/marks-entry-grid'
+import ManageStudentsPage from '@/components/manage-students-page'
 import ApiService from '@/services/api'
 
-type PageView = 'dashboard' | 'class-selection' | 'attendance' | 'marks-classes' | 'marks-students' | 'marks-student-details'
+type PageView =
+    | 'dashboard'
+    | 'class-selection'
+    | 'attendance'
+    | 'manage-students'
+    | 'marks-classes'
+    | 'marks-students'
+    | 'marks-student-details'
+    | 'marks-entry-grid'
 
 export default function TeacherPage() {
     const [teacher, setTeacher] = useState<any>(null)
@@ -97,9 +107,19 @@ export default function TeacherPage() {
                     onClassSelect={handleClassSelect}
                     onManageStudents={(classId: number, className: string) => {
                         setSelectedClass({ id: classId.toString(), name: className })
+                        setCurrentPage("manage-students")
                     }}
                     onLogout={handleLogout}
                     onBack={handleBackToDashboard}
+                />
+            )}
+
+            {currentPage === 'manage-students' && teacher && selectedClass && (
+                <ManageStudentsPage
+                    className={selectedClass.name}
+                    classId={Number(selectedClass.id)}
+                    onBack={handleBackToClasses}
+                    onLogout={handleLogout}
                 />
             )}
 
@@ -133,6 +153,16 @@ export default function TeacherPage() {
                         setSelectedStudent({ id: studentId, name: studentName })
                         setCurrentPage("marks-student-details")
                     }}
+                    onEnterMarks={() => setCurrentPage("marks-entry-grid")}
+                />
+            )}
+
+            {currentPage === 'marks-entry-grid' && teacher && selectedClass && (
+                <MarksEntryGrid
+                    classId={selectedClass.id}
+                    className={selectedClass.name}
+                    onBack={() => setCurrentPage("marks-students")}
+                    onLogout={handleLogout}
                 />
             )}
 

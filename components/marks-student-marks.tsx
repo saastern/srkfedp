@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/loading-spinner"
-import { ArrowLeft, Calendar, BookOpen } from "lucide-react"
+import { ArrowLeft, Calendar, BookOpen, Pencil } from "lucide-react"
 import { MarksTable } from "@/components/marks-table" // ✅ Import your existing table
+import { MarksStudentEditTable } from "@/components/marks-student-edit-table"
 import { TermSummaryCard } from "@/components/term-summary-card" // ✅ Import your existing cards
 import ApiService from "@/services/api"
 
@@ -19,6 +20,7 @@ interface MarksStudentMarksProps {
 export function MarksStudentMarks({ studentId, teacher, onBack, onLogout }: MarksStudentMarksProps) {
   const [marksData, setMarksData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     console.log('🔍 Loading marks for student:', studentId)
@@ -83,23 +85,44 @@ export function MarksStudentMarks({ studentId, teacher, onBack, onLogout }: Mark
               {marksData.student?.name || 'Student'}
             </h1>
             <p className="text-gray-600 mt-1">
-              Roll No: {marksData.student?.rollNo || 'N/A'} | 
+              Roll No: {marksData.student?.rollNo || 'N/A'} |
               Class: {marksData.student?.className || 'N/A'}
             </p>
           </div>
-          
+
+          {!isEditing && (
+            <Button onClick={() => setIsEditing(true)} className="bg-blue-600 hover:bg-blue-700 w-fit">
+              <Pencil className="w-4 h-4 mr-2" />
+              Edit Marks
+            </Button>
+          )}
+
           <Button onClick={onLogout} variant="outline" size="sm">
             Logout
           </Button>
         </div>
 
-        {/* ✅ SECTION 1: Subject Marks Table (Top) */}
+        {/* ✅ SECTION 1: Subject Marks Table (Top) — read-only or editable */}
         {marksData.subjects && marksData.subjects.length > 0 ? (
           <div className="mb-8">
-            <MarksTable 
-              subjects={marksData.subjects}
-              classConfig={marksData.classConfig}
-            />
+            {isEditing ? (
+              <MarksStudentEditTable
+                studentId={studentId}
+                classId={marksData.student?.classId || ""}
+                subjects={marksData.subjects}
+                exams={marksData.exams || []}
+                onCancel={() => setIsEditing(false)}
+                onSaved={() => {
+                  setIsEditing(false)
+                  fetchStudentMarks()
+                }}
+              />
+            ) : (
+              <MarksTable
+                subjects={marksData.subjects}
+                classConfig={marksData.classConfig}
+              />
+            )}
           </div>
         ) : (
           <Card className="shadow-lg border-0 mb-8">
@@ -107,7 +130,7 @@ export function MarksStudentMarks({ studentId, teacher, onBack, onLogout }: Mark
               <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">No subject marks available</p>
               <p className="text-gray-400 text-sm mt-2">
-                Marks will appear here once entered by teachers
+                Click "Edit Marks" above to enter marks for this student
               </p>
             </CardContent>
           </Card>
@@ -139,22 +162,6 @@ export function MarksStudentMarks({ studentId, teacher, onBack, onLogout }: Mark
           </div>
         )}
 
-        {/* ✅ Debug Section (remove in production) */}
-        <Card className="mt-8 bg-gray-50">
-          <CardHeader>
-            <CardTitle className="text-sm text-gray-600">🔍 Debug Data</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <details>
-              <summary className="cursor-pointer text-sm text-gray-600 mb-2">
-                Click to expand API response
-              </summary>
-              <pre className="text-xs bg-white p-4 rounded border overflow-auto max-h-96">
-                {JSON.stringify(marksData, null, 2)}
-              </pre>
-            </details>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

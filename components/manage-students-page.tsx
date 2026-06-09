@@ -80,7 +80,7 @@ export default function ManageStudentsPage({ className, classId, onBack, onLogou
     
     try {
       console.log('🔍 Fetching students for classId:', classId)
-      const response = await ApiService.getClassStudents(classId)
+      const response = await ApiService.getClassStudentsForManage(classId)
       console.log('📥 Students API response:', response)
       
       if (response.success && response.students) {
