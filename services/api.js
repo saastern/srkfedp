@@ -253,6 +253,41 @@ class ApiService {
     });
   }
 
+  /*-----------------------------------------------------------*
+   |  ✅ SETTINGS: Grade configuration                        |
+   *-----------------------------------------------------------*/
+
+  // Load grade bands for a class group + exam type
+  static getGradeScales(classGroup, examType) {
+    const params = new URLSearchParams()
+    if (classGroup) params.set('class_group', classGroup)
+    if (examType) params.set('exam_type', examType)
+    return ApiService.request(`/api/assessments/grade-scales/?${params.toString()}`);
+  }
+
+  // Replace-all save of grade bands for a (class_group, exam_type)
+  static saveGradeScales(payload) {
+    return ApiService.request('/api/assessments/grade-scales/save/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /*-----------------------------------------------------------*
+   |  ✅ SETTINGS: Student promotion / year rollover          |
+   *-----------------------------------------------------------*/
+
+  static getPromotionPreview() {
+    return ApiService.request('/api/students/promotion/preview/');
+  }
+
+  static runPromotion(payload) {
+    return ApiService.request('/api/students/promotion/run/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   static getStaffList() {
     return ApiService.request('/api/teachers/list/');
   }

@@ -10,6 +10,7 @@ import ManageStudentsPage from "@/components/manage-students-page"
 import { MarksClassDashboard } from "@/components/marks-class-dashboard"
 import ApiService from "@/services/api"
 import { MarksStudentMarks } from "@/components/marks-student-marks"
+import { SettingsPage } from "@/components/settings-page"
 import FeeDashboard from "@/components/PrincipalDashboard/FeeDashboard"
 import PrincipalDashboard from "@/components/PrincipalDashboard/PrincipalDashboard"
 import { useRouter } from "next/navigation"
@@ -32,7 +33,7 @@ export type Teacher = {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes" | "marks-students" | "principal" | "principal-fees" | "marks-student-details">("login")
+  const [currentPage, setCurrentPage] = useState<"login" | "dashboard" | "class-selection" | "attendance" | "manage-students" | "marks-classes" | "marks-students" | "principal" | "principal-fees" | "marks-student-details" | "settings">("login")
   const [currentModule, setCurrentModule] = useState<"attendance" | "marks" | null>(null)
   const [teacher, setTeacher] = useState<Teacher | null>(null)
   const [selectedClass, setSelectedClass] = useState<{ id: string; name: string } | null>(null)
@@ -83,7 +84,11 @@ export default function App() {
 
 
   // Handle module selection from dashboard
-  const handleModuleSelect = (module: "attendance" | "marks") => {
+  const handleModuleSelect = (module: "attendance" | "marks" | "settings") => {
+    if (module === "settings") {
+      setCurrentPage("settings")
+      return
+    }
     setCurrentModule(module)
 
     if (module === "attendance") {
@@ -169,6 +174,13 @@ export default function App() {
         <Dashboard
           teacher={teacher}
           onSelectModule={handleModuleSelect}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {currentPage === "settings" && teacher && (
+        <SettingsPage
+          onBack={handleBackToDashboard}
           onLogout={handleLogout}
         />
       )}

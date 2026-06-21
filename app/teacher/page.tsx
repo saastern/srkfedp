@@ -10,6 +10,7 @@ import { MarksStudentList } from '@/components/marks-student-list'
 import { MarksStudentMarks } from '@/components/marks-student-marks'
 import { MarksEntryGrid } from '@/components/marks-entry-grid'
 import ManageStudentsPage from '@/components/manage-students-page'
+import { SettingsPage } from '@/components/settings-page'
 import ApiService from '@/services/api'
 
 type PageView =
@@ -21,6 +22,7 @@ type PageView =
     | 'marks-students'
     | 'marks-student-details'
     | 'marks-entry-grid'
+    | 'settings'
 
 export default function TeacherPage() {
     const [teacher, setTeacher] = useState<any>(null)
@@ -59,7 +61,11 @@ export default function TeacherPage() {
         }
     }
 
-    const handleModuleSelect = (module: "attendance" | "marks") => {
+    const handleModuleSelect = (module: "attendance" | "marks" | "settings") => {
+        if (module === "settings") {
+            setCurrentPage("settings")
+            return
+        }
         setCurrentModule(module)
         if (module === "attendance") {
             setCurrentPage("class-selection")
@@ -98,6 +104,13 @@ export default function TeacherPage() {
                 <Dashboard
                     teacher={teacher}
                     onSelectModule={handleModuleSelect}
+                    onLogout={handleLogout}
+                />
+            )}
+
+            {currentPage === 'settings' && teacher && (
+                <SettingsPage
+                    onBack={handleBackToDashboard}
                     onLogout={handleLogout}
                 />
             )}

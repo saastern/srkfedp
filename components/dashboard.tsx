@@ -3,7 +3,7 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Users, LogOut, ClipboardList, Megaphone, Calendar, UserCheck } from "lucide-react"
+import { BookOpen, Users, LogOut, ClipboardList, Megaphone, Calendar, UserCheck, Settings } from "lucide-react"
 
 interface DashboardProps {
   teacher: {
@@ -14,7 +14,7 @@ interface DashboardProps {
     full_name: string
     role: string
   }
-  onSelectModule: (module: "attendance" | "marks") => void
+  onSelectModule: (module: "attendance" | "marks" | "settings") => void
   onLogout: () => void
 }
 
@@ -54,6 +54,15 @@ const MODULES = [
     color: 'bg-orange-100 group-hover:bg-orange-200',
     iconColor: 'text-orange-600',
     buttonColor: 'bg-orange-600 hover:bg-orange-700',
+  },
+  {
+    id: 'settings',
+    label: 'Settings & Modifications',
+    description: 'Configure grade scales for all classes and run end-of-year student promotion / year rollover',
+    icon: Settings,
+    color: 'bg-gray-100 group-hover:bg-gray-200',
+    iconColor: 'text-gray-700',
+    buttonColor: 'bg-gray-700 hover:bg-gray-800',
   },
 ]
 
@@ -126,8 +135,8 @@ export default function Dashboard({ teacher, onSelectModule, onLogout }: Dashboa
                   </p>
                   <Button
                     onClick={() => {
-                      if (mod.id === 'attendance' || mod.id === 'marks') {
-                        onSelectModule(mod.id as "attendance" | "marks")
+                      if (mod.id === 'attendance' || mod.id === 'marks' || mod.id === 'settings') {
+                        onSelectModule(mod.id as "attendance" | "marks" | "settings")
                       } else {
                         // For future modules — navigate or show coming soon
                         console.log('Selected module:', mod.id)
@@ -136,7 +145,7 @@ export default function Dashboard({ teacher, onSelectModule, onLogout }: Dashboa
                     className={`w-full ${mod.buttonColor} text-white py-3 text-lg`}
                     size="lg"
                   >
-                    {mod.id === 'my_classes' || mod.id === 'announcements' ? `View ${mod.label}` : `Open ${mod.label.split(' ')[0]}`}
+                    {mod.id === 'my_classes' || mod.id === 'announcements' ? `View ${mod.label}` : mod.id === 'settings' ? 'Open Settings' : `Open ${mod.label.split(' ')[0]}`}
                   </Button>
                 </CardContent>
               </Card>
