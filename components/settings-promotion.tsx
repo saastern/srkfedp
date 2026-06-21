@@ -53,6 +53,7 @@ export function SettingsPromotion() {
   const [needsOrderSetup, setNeedsOrderSetup] = useState(false)
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState(false)
+  const [fixingOrder, setFixingOrder] = useState(false)
   const [result, setResult] = useState<string | null>(null)
 
   const [yearName, setYearName] = useState("")
@@ -80,6 +81,28 @@ export function SettingsPromotion() {
       toast({ title: "Error", description: error.message || "Could not load preview", variant: "destructive" })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleFixOrder = async () => {
+    setFixingOrder(true)
+    try {
+      const data = await ApiService.setClassOrders()
+      if (!data.success) throw new Error(data.message || "Failed to set class order")
+      toast({ title: "Class Order Updated", description: data.message, duration: 5000 })
+      if (data.unrecognized && data.unrecognized.length > 0) {
+        toast({
+          title: "Some classes need a manual order",
+          description: data.unrecognized.map((u: any) => `${u.name} (${u.students} students)`).join(", "),
+          variant: "destructive",
+          duration: 8000,
+        })
+      }
+      fetchPreview()
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to set class order", variant: "destructive" })
+    } finally {
+      setFixingOrder(false)
     }
   }
 
@@ -123,9 +146,22 @@ export function SettingsPromotion() {
       </CardHeader>
       <CardContent className="space-y-5">
         {needsOrderSetup && (
-          <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
-            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-            <span>Some classes have no promotion order set (order = 0). Promotion may be inaccurate until class orders are configured.</span>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-md p-3 text-sm text-yellow-800">
+            <div className="flex items-start gap-2 flex-1">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>Some classes have no promotion order set, so the "Moves To" mapping below is wrong. Click Fix to set the standard order (L.K.G → U.K.G → 1 → … → 10).</span>
+            </div>
+            <Button onClick={handleFixOrder} disabled={fixingOrder} size="sm" variant="outline" className="bg-white w-fit shrink-0">
+              {fixingOrder ? "Fixing…" : "Fix Class Order"}
+            </Button>
+          </div>
+        )}
+
+        {!needsOrderSetup && (
+          <div className="flex justify-end">
+            <Button onClick={handleFixOrder} disabled={fixingOrder} size="sm" variant="ghost" className="text-gray-500">
+              {fixingOrder ? "Re-applying…" : "Re-apply standard class order"}
+            </Button>
           </div>
         )}
 

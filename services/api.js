@@ -274,8 +274,29 @@ class ApiService {
   }
 
   /*-----------------------------------------------------------*
+   |  ✅ SETTINGS: Per-class subject configuration            |
+   *-----------------------------------------------------------*/
+
+  static getClassSubjects(classId) {
+    return ApiService.request(`/api/assessments/class-subjects/?class_id=${classId}`);
+  }
+
+  static saveClassSubjects(payload) {
+    return ApiService.request('/api/assessments/class-subjects/save/', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  /*-----------------------------------------------------------*
    |  ✅ SETTINGS: Student promotion / year rollover          |
    *-----------------------------------------------------------*/
+
+  static setClassOrders() {
+    return ApiService.request('/api/students/classes/set-orders/', {
+      method: 'POST',
+    });
+  }
 
   static getPromotionPreview() {
     return ApiService.request('/api/students/promotion/preview/');

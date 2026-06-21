@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { ArrowLeft, LogOut, Sliders, GraduationCap } from "lucide-react"
+import { ArrowLeft, LogOut, Sliders, GraduationCap, BookOpen } from "lucide-react"
 import { SettingsGradeConfig } from "@/components/settings-grade-config"
+import { SettingsSubjectConfig } from "@/components/settings-subject-config"
 import { SettingsPromotion } from "@/components/settings-promotion"
 
 interface SettingsPageProps {
@@ -36,6 +37,9 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
             <TabsTrigger value="grades">
               <Sliders className="w-4 h-4 mr-2" /> Grade Configuration
             </TabsTrigger>
+            <TabsTrigger value="subjects">
+              <BookOpen className="w-4 h-4 mr-2" /> Subject Configuration
+            </TabsTrigger>
             <TabsTrigger value="promotion">
               <GraduationCap className="w-4 h-4 mr-2" /> Promote Students
             </TabsTrigger>
@@ -43,6 +47,10 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
 
           <TabsContent value="grades">
             <SettingsGradeConfig />
+          </TabsContent>
+
+          <TabsContent value="subjects">
+            <SettingsSubjectConfig />
           </TabsContent>
 
           <TabsContent value="promotion">
