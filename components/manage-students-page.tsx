@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, LogOut, Plus, Upload, Trash2 } from "lucide-react"
+import { ArrowLeft, LogOut, Plus, Upload, Trash2, Pencil, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import ApiService from "@/services/api" // Import your API service
 import {
@@ -71,7 +71,46 @@ export default function ManageStudentsPage({ className, classId, onBack, onLogou
   const [currentStudents, setCurrentStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editingStudentId, setEditingStudentId] = useState<number | null>(null)
   const { toast } = useToast()
+
+  const emptyForm: StudentForm = {
+    firstName: "",
+    lastName: "",
+    rollNumber: "",
+    fatherName: "",
+    motherName: "",
+    parentPhone: "",
+    parentEmail: "",
+    address: "",
+    gender: "",
+  }
+
+  const resetForm = () => {
+    setStudentForm(emptyForm)
+    setEditingStudentId(null)
+  }
+
+  // Prefill the form from an existing student and switch to edit mode
+  const startEdit = (student: Student) => {
+    const parts = (student.name || "").trim().split(" ")
+    const firstName = parts[0] || ""
+    const lastName = parts.slice(1).join(" ")
+    setStudentForm({
+      firstName,
+      lastName,
+      rollNumber: student.roll_number || "",
+      fatherName: student.father_name || "",
+      motherName: student.mother_name || "",
+      parentPhone: student.parent_phone || "",
+      parentEmail: student.parent_email || "",
+      address: student.address || "",
+      gender: student.gender || "",
+    })
+    setEditingStudentId(student.id)
+    // Bring the form into view
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" })
+  }
 
   // Fetch students from Django API
   const fetchStudents = async () => {
@@ -120,54 +159,49 @@ export default function ManageStudentsPage({ className, classId, onBack, onLogou
     e.preventDefault()
     setIsSubmitting(true)
 
+    const studentData = {
+      class_id: classId,
+      name: `${studentForm.firstName} ${studentForm.lastName}`.trim(),
+      roll_number: studentForm.rollNumber,
+      father_name: studentForm.fatherName,
+      mother_name: studentForm.motherName,
+      parent_phone: studentForm.parentPhone,
+      parent_email: studentForm.parentEmail,
+      address: studentForm.address,
+      gender: studentForm.gender,
+    }
+
     try {
-      const newStudentData = {
-        class_id: classId,
-        name: `${studentForm.firstName} ${studentForm.lastName}`,
-        roll_number: studentForm.rollNumber,
-        father_name: studentForm.fatherName,
-        mother_name: studentForm.motherName,
-        parent_phone: studentForm.parentPhone,
-        parent_email: studentForm.parentEmail,
-        address: studentForm.address,
-        gender: studentForm.gender,
-      }
+      if (editingStudentId !== null) {
+        // Edit mode
+        const response = await ApiService.updateStudent(editingStudentId, studentData)
+        if (!response.success) throw new Error(response.message || 'Failed to update student')
 
-      console.log('📤 Adding student:', newStudentData)
-
-      // Call your Django API to add student
-      const response = await ApiService.addStudent(newStudentData)
-      
-      if (response.success) {
-        // Refresh the students list
         await fetchStudents()
-        
         toast({
-          title: "Student Added Successfully!",
-          description: `${studentForm.firstName} ${studentForm.lastName} has been added to ${className}.`,
+          title: "Student Updated",
+          description: `${studentData.name}'s details were updated.`,
           duration: 3000,
         })
-
-        // Reset form
-        setStudentForm({
-          firstName: "",
-          lastName: "",
-          rollNumber: "",
-          fatherName: "",
-          motherName: "",
-          parentPhone: "",
-          parentEmail: "",
-          address: "",
-          gender: "",
-        })
+        resetForm()
       } else {
-        throw new Error(response.message || 'Failed to add student')
+        // Add mode
+        const response = await ApiService.addStudent(studentData)
+        if (!response.success) throw new Error(response.message || 'Failed to add student')
+
+        await fetchStudents()
+        toast({
+          title: "Student Added Successfully!",
+          description: `${studentData.name} has been added to ${className}.`,
+          duration: 3000,
+        })
+        resetForm()
       }
     } catch (error: any) {
-      console.error('❌ Error adding student:', error)
+      console.error('❌ Error saving student:', error)
       toast({
-        title: "Error Adding Student",
-        description: error.message || 'Failed to add student',
+        title: editingStudentId !== null ? "Error Updating Student" : "Error Adding Student",
+        description: error.message || 'Failed to save student',
         variant: "destructive",
         duration: 5000,
       })
@@ -305,11 +339,13 @@ export default function ManageStudentsPage({ className, classId, onBack, onLogou
       console.log('🗑️ Deleting student:', studentId)
       
       const response = await ApiService.deleteStudent(studentId)
-      
+
       if (response.success) {
+        // If we were editing this student, exit edit mode
+        if (editingStudentId === studentId) resetForm()
         // Refresh the students list
         await fetchStudents()
-        
+
         toast({
           title: "Student Removed",
           description: `${studentName} has been removed from ${className}.`,
@@ -366,9 +402,16 @@ export default function ManageStudentsPage({ className, classId, onBack, onLogou
         {/* Add Student Form */}
         <Card className="shadow-lg mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Plus className="w-5 h-5" />
-              <span>Add Single Student</span>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center space-x-2">
+                {editingStudentId !== null ? <Pencil className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                <span>{editingStudentId !== null ? "Edit Student" : "Add Single Student"}</span>
+              </span>
+              {editingStudentId !== null && (
+                <Button type="button" variant="ghost" size="sm" onClick={resetForm}>
+                  <X className="w-4 h-4 mr-1" /> Cancel edit
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -483,14 +526,23 @@ export default function ManageStudentsPage({ className, classId, onBack, onLogou
 
               {/* Submit Button */}
               <div className="flex justify-end space-x-4 pt-6">
-                <Button type="button" variant="outline" onClick={onBack}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={editingStudentId !== null ? resetForm : onBack}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={!isFormValid || isSubmitting} className="bg-blue-600 hover:bg-blue-700">
                   {isSubmitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Adding Student...
+                      {editingStudentId !== null ? "Saving..." : "Adding Student..."}
+                    </>
+                  ) : editingStudentId !== null ? (
+                    <>
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Update Student
                     </>
                   ) : (
                     <>
@@ -560,35 +612,49 @@ export default function ManageStudentsPage({ className, classId, onBack, onLogou
             ) : (
               <div className="space-y-3">
                 {currentStudents.map((student) => (
-                  <div key={student.id} className="flex items-center justify-between p-3 border rounded-md bg-gray-50">
+                  <div
+                    key={student.id}
+                    className={`flex items-center justify-between p-3 border rounded-md ${editingStudentId === student.id ? "bg-blue-50 border-blue-300" : "bg-gray-50"}`}
+                  >
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">
                         {student.roll_number} - {student.name}
                       </p>
                       <p className="text-sm text-gray-600">{student.parent_phone}</p>
                     </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="icon" className="ml-4">
-                          <Trash2 className="w-4 h-4" />
-                          <span className="sr-only">Remove {student.name}</span>
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently remove {student.name} (Roll No: {student.roll_number}) from {className}.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteStudent(student.id, student.name)}>
-                            Continue
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <div className="flex items-center gap-2 ml-4">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => startEdit(student)}
+                        aria-label={`Edit ${student.name}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="icon">
+                            <Trash2 className="w-4 h-4" />
+                            <span className="sr-only">Remove {student.name}</span>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove this student from the class?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {student.name} (Roll No: {student.roll_number}) will be removed from {className}.
+                              Their marks and attendance history are kept, and they can be re-added later.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteStudent(student.id, student.name)}>
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 ))}
               </div>

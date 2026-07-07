@@ -171,6 +171,13 @@ class ApiService {
     });
   }
 
+  static async updateStudent(studentId, studentData) {
+    return ApiService.request(`/api/students/${studentId}/update/`, {
+      method: 'PUT',
+      body: JSON.stringify(studentData),
+    });
+  }
+
   static async deleteStudent(studentId) {
     return ApiService.request(`/api/students/${studentId}/delete/`, {
       method: 'DELETE',
